@@ -1,0 +1,52 @@
+# Créer un nouveau .gitignore avec les bons chemins
+echo '# Unity generated
+ZeGroupInvento/[Ll]ibrary/
+ZeGroupInvento/[Tt]emp/
+ZeGroupInvento/[Oo]bj/
+ZeGroupInvento/[Bb]uild/
+ZeGroupInvento/[Bb]uilds/
+ZeGroupInvento/[Ll]ogs/
+ZeGroupInvento/[Uu]ser[Ss]ettings/
+ZeGroupInvento/[Mm]emoryCaptures/
+ZeGroupInvento/[Rr]ecordings/
+
+# IDEs
+ZeGroupInvento/.vs/
+ZeGroupInvento/.vscode/
+ZeGroupInvento/.vsconfig
+ZeGroupInvento/.idea/
+ZeGroupInvento/.gradle/
+
+# Project files
+ZeGroupInvento/*.csproj
+ZeGroupInvento/*.unityproj
+ZeGroupInvento/*.sln
+ZeGroupInvento/*.suo
+ZeGroupInvento/*.tmp
+ZeGroupInvento/*.user
+ZeGroupInvento/*.userprefs
+ZeGroupInvento/*.pidb
+ZeGroupInvento/*.booproj
+ZeGroupInvento/*.svd
+ZeGroupInvento/*.pdb
+ZeGroupInvento/*.mdb
+ZeGroupInvento/*.opendb
+ZeGroupInvento/*.VC.db
+
+# Unity3D generated
+ZeGroupInvento/*.pidb.meta
+ZeGroupInvento/*.pdb.meta
+ZeGroupInvento/*.mdb.meta
+ZeGroupInvento/sysinfo.txt
+ZeGroupInvento/crashlytics-build.properties
+
+# Builds
+ZeGroupInvento/*.apk
+ZeGroupInvento/*.aab
+ZeGroupInvento/*.unitypackage
+ZeGroupInvento/*.app
+
+# Addressables
+ZeGroupInvento/Assets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+ZeGroupInvento/Assets/[Ss]treamingAssets/aa.meta
+ZeGroupInvento/Assets/[Ss]treamingAssets/aa/*' > .gitignore
