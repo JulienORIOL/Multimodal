@@ -1,52 +1,53 @@
 # Créer un nouveau .gitignore avec les bons chemins
 echo '# Unity generated
-ZeGroupInvento/[Ll]ibrary/
-ZeGroupInvento/[Tt]emp/
-ZeGroupInvento/[Oo]bj/
-ZeGroupInvento/[Bb]uild/
-ZeGroupInvento/[Bb]uilds/
-ZeGroupInvento/[Ll]ogs/
-ZeGroupInvento/[Uu]ser[Ss]ettings/
-ZeGroupInvento/[Mm]emoryCaptures/
-ZeGroupInvento/[Rr]ecordings/
+*/[Ll]ibrary/
+*/[Tt]emp/
+*/[Oo]bj/
+*/[Bb]uild/
+*/[Bb]uilds/
+*/[Ll]ogs/
+*/[Pp]rojectSettings/
+*/[Uu]ser[Ss]ettings/
+*/[Mm]emoryCaptures/
+*/[Rr]ecordings/
 
 # IDEs
-ZeGroupInvento/.vs/
-ZeGroupInvento/.vscode/
-ZeGroupInvento/.vsconfig
-ZeGroupInvento/.idea/
-ZeGroupInvento/.gradle/
+*/.vs/
+*/.vscode/
+*/.vsconfig
+*/.idea/
+*/.gradle/
 
 # Project files
-ZeGroupInvento/*.csproj
-ZeGroupInvento/*.unityproj
-ZeGroupInvento/*.sln
-ZeGroupInvento/*.suo
-ZeGroupInvento/*.tmp
-ZeGroupInvento/*.user
-ZeGroupInvento/*.userprefs
-ZeGroupInvento/*.pidb
-ZeGroupInvento/*.booproj
-ZeGroupInvento/*.svd
-ZeGroupInvento/*.pdb
-ZeGroupInvento/*.mdb
-ZeGroupInvento/*.opendb
-ZeGroupInvento/*.VC.db
+*/*.csproj
+*/*.unityproj
+*/*.sln
+*/*.suo
+*/*.tmp
+*/*.user
+*/*.userprefs
+*/*.pidb
+*/*.booproj
+*/*.svd
+*/*.pdb
+*/*.mdb
+*/*.opendb
+*/*.VC.db
 
 # Unity3D generated
-ZeGroupInvento/*.pidb.meta
-ZeGroupInvento/*.pdb.meta
-ZeGroupInvento/*.mdb.meta
-ZeGroupInvento/sysinfo.txt
-ZeGroupInvento/crashlytics-build.properties
+*/*.pidb.meta
+*/*.pdb.meta
+*/*.mdb.meta
+*/sysinfo.txt
+*/crashlytics-build.properties
 
 # Builds
-ZeGroupInvento/*.apk
-ZeGroupInvento/*.aab
-ZeGroupInvento/*.unitypackage
-ZeGroupInvento/*.app
+*/*.apk
+*/*.aab
+*/*.unitypackage
+*/*.app
 
 # Addressables
-ZeGroupInvento/Assets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
-ZeGroupInvento/Assets/[Ss]treamingAssets/aa.meta
-ZeGroupInvento/Assets/[Ss]treamingAssets/aa/*' > .gitignore
+*/Assets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+*/Assets/[Ss]treamingAssets/aa.meta
+*/Assets/[Ss]treamingAssets/aa/*' > .gitignore
