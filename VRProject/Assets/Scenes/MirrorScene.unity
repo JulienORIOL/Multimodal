@@ -604,7 +604,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   walkSpeed: 3
   runSpeed: 6
-  rotationSpeed: 720
+  rotationSpeed: 90
 --- !u!4 &1654471063 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: 49e9a2b80e32aad49b1ea67be50a44ce, type: 3}
