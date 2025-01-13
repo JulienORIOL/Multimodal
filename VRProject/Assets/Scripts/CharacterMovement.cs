@@ -56,12 +56,12 @@ public class CharacterMovement : MonoBehaviour
         }
 
         if (Input.GetKey(KeyCode.Space)) {
-            animator.SetBool("Jump_b", true);
+            animator.SetBool("Jump_gggb", true);
         } else {
             animator.SetBool("Jump_b", false);
         }
 
-        if (Input.GetKey(KeyCode.G)) {
+        if (Input.GetKey(KeyCode.J)) {
             animator.SetInteger("WeaponType_int", 10);
         } else {
             animator.SetInteger("WeaponType_int", 0);
