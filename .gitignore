@@ -9,7 +9,7 @@ echo '# Unity generated
 */[Uu]ser[Ss]ettings/
 */[Mm]emoryCaptures/
 */[Rr]ecordings/
-
+*/.DS_Store
 # IDEs
 */.vs/
 */.vscode/
