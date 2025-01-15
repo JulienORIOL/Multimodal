@@ -22,20 +22,17 @@ public class AtmosphereController : MonoBehaviour
 
     void Start()
     {
-        Debug.Log("=== AtmosphereController démarré ===");
         
         if (mainLight == null)
         {
             mainLight = GameObject.Find("Directional Light")?.GetComponent<Light>();
             if (mainLight == null)
             {
-                Debug.LogError("Aucune lumière principale n'a été trouvée !");
                 return;
             }
         }
 
         originalColor = mainLight.color;
-        Debug.Log($"Couleur initiale de la lumière: {originalColor}");
     }
 
     void Update()
@@ -44,30 +41,25 @@ public class AtmosphereController : MonoBehaviour
         
         if (mouseWheel != 0)
         {
-            Debug.Log($"Molette: {mouseWheel}");
             
             // Gestion des teintes avec la molette + touches
             if (Input.GetKey(KeyCode.R))
             {
                 colorModification.x = Mathf.Clamp(colorModification.x + mouseWheel * tintMouseWheelSensitivity, -1f, 1f);
-                Debug.Log($"Rouge modifié: {colorModification.x}");
             }
             else if (Input.GetKey(KeyCode.G))
             {
                 colorModification.y = Mathf.Clamp(colorModification.y + mouseWheel * tintMouseWheelSensitivity, -1f, 1f);
-                Debug.Log($"Vert modifié: {colorModification.y}");
             }
             else if (Input.GetKey(KeyCode.B))
             {
                 colorModification.z = Mathf.Clamp(colorModification.z + mouseWheel * tintMouseWheelSensitivity, -1f, 1f);
-                Debug.Log($"Bleu modifié: {colorModification.z}");
             }
             else
             {
                 // Luminosité
                 float newIntensity = mainLight.intensity + mouseWheel * brightnessMouseWheelSensitivity;
                 mainLight.intensity = Mathf.Clamp(newIntensity, minBrightness, maxBrightness);
-                Debug.Log($"Luminosité: {mainLight.intensity}");
             }
         }
 
@@ -76,7 +68,6 @@ public class AtmosphereController : MonoBehaviour
         {
             colorModification = Vector3.zero;
             mainLight.color = originalColor;
-            Debug.Log("Couleurs réinitialisées");
             return;
         }
 
@@ -95,7 +86,6 @@ public class AtmosphereController : MonoBehaviour
 
         if (mainLight.color != newColor)
         {
-            Debug.Log($"Nouvelle couleur appliquée - R:{newColor.r} G:{newColor.g} B:{newColor.b}");
             mainLight.color = newColor;
         }
     }
