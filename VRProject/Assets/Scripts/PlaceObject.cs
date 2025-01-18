@@ -6,16 +6,20 @@ public class ObjectPlacer : MonoBehaviour
 {
     public Button placementButton;
     public GameObject selectionMenu;
+    public GameObject replacementMenu;  // Nouveau menu pour le remplacement
     public GameObject[] placableObjects;
     public Button[] objectSelectionButtons;
-
+    public Button deleteButton;  // Bouton pour supprimer l'objet
+    
     private GameObject selectedObject;
     private GameObject previewObject;
+    private GameObject objectToReplace;  // Référence à l'objet à remplacer
     
     private enum PlacementState
     {
         Idle,
-        WaitingForPlacement
+        WaitingForPlacement,
+        WaitingForReplacement
     }
     private PlacementState currentState = PlacementState.Idle;
 
@@ -23,6 +27,7 @@ public class ObjectPlacer : MonoBehaviour
     {
         placementButton.onClick.AddListener(StartPlacementMode);
         
+        // Configuration des boutons de sélection
         for (int i = 0; i < objectSelectionButtons.Length; i++)
         {
             int index = i;
@@ -45,28 +50,76 @@ public class ObjectPlacer : MonoBehaviour
                 }
             }
         }
+
+        // Configuration du bouton de suppression
+        if (deleteButton != null)
+        {
+            deleteButton.onClick.AddListener(DeleteSelectedObject);
+        }
         
         selectionMenu.SetActive(false);
+        replacementMenu.SetActive(false);
+        deleteButton.gameObject.SetActive(false);
+
     }
 
     void Update()
     {
         if (currentState == PlacementState.WaitingForPlacement && previewObject != null)
         {
+            HandlePlacementPreview();
+        }
+        else if (currentState == PlacementState.Idle)
+        {
+            HandleObjectSelection();
+        }
+    }
+
+    private void HandlePlacementPreview()
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+            
+        if (Physics.Raycast(ray, out hit))
+        {
+            previewObject.transform.position = hit.point;
+        }
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            PlaceSelectedObject();
+        }
+    }
+
+    private void HandleObjectSelection()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
-            
+
             if (Physics.Raycast(ray, out hit))
             {
-                previewObject.transform.position = hit.point;
-            }
-
-            if (Input.GetMouseButtonDown(0))
-            {
-                Debug.Log("Cliquez pour placer l'objet : " + selectedObject.name);
-                PlaceSelectedObject();
+                // Vérifier si nous avons cliqué sur un objet placé
+                GameObject clickedObject = hit.collider.gameObject;
+                foreach (GameObject placableObject in placableObjects)
+                {
+                    if (clickedObject.name.Contains(placableObject.name))
+                    {
+                        ShowReplacementMenu(clickedObject);
+                        break;
+                    }
+                }
             }
         }
+    }
+
+    private void ShowReplacementMenu(GameObject clickedObject)
+    {
+        objectToReplace = clickedObject;
+        currentState = PlacementState.WaitingForReplacement;
+        replacementMenu.SetActive(true);
+        deleteButton.gameObject.SetActive(true);
     }
 
     void StartPlacementMode()
@@ -97,13 +150,48 @@ public class ObjectPlacer : MonoBehaviour
         {
             Destroy(previewObject);
         }
-        selectionMenu.SetActive(false);
 
-        previewObject = Instantiate(selectedObject);
-        previewObject.GetComponent<Collider>().enabled = false;
+        if (currentState == PlacementState.WaitingForReplacement)
+        {
+            ReplaceObject();
+        }
+        else
+        {
+            selectionMenu.SetActive(false);
+            previewObject = Instantiate(selectedObject);
+            previewObject.GetComponent<Collider>().enabled = false;
+            SetPreviewMaterial(previewObject);
+        }
+    }
 
-        SetPreviewMaterial(previewObject);
-        
+    private void ReplaceObject()
+    {
+        if (objectToReplace != null && selectedObject != null)
+        {
+            Vector3 position = objectToReplace.transform.position;
+            Quaternion rotation = objectToReplace.transform.rotation;
+            Destroy(objectToReplace);
+            Instantiate(selectedObject, position, rotation);
+        }
+
+        CancelReplacement();
+    }
+
+    private void DeleteSelectedObject()
+    {
+        if (objectToReplace != null)
+        {
+            Destroy(objectToReplace);
+            CancelReplacement();
+        }
+    }
+
+    private void CancelReplacement()
+    {
+        replacementMenu.SetActive(false);
+        deleteButton.gameObject.SetActive(false);
+        currentState = PlacementState.Idle;
+        objectToReplace = null;
     }
 
     private void SetPreviewMaterial(GameObject obj)
