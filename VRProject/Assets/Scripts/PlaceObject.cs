@@ -6,14 +6,15 @@ public class ObjectPlacer : MonoBehaviour
 {
     public Button placementButton;
     public GameObject selectionMenu;
-    public GameObject replacementMenu;  // Nouveau menu pour le remplacement
+    public GameObject replacementMenu;
     public GameObject[] placableObjects;
     public Button[] objectSelectionButtons;
-    public Button deleteButton;  // Bouton pour supprimer l'objet
+    public Button deleteButton;
     
     private GameObject selectedObject;
     private GameObject previewObject;
-    private GameObject objectToReplace;  // Référence à l'objet à remplacer
+    private GameObject objectToReplace;
+    private bool isDragging = false;
     
     private enum PlacementState
     {
@@ -27,7 +28,6 @@ public class ObjectPlacer : MonoBehaviour
     {
         placementButton.onClick.AddListener(StartPlacementMode);
         
-        // Configuration des boutons de sélection
         for (int i = 0; i < objectSelectionButtons.Length; i++)
         {
             int index = i;
@@ -51,7 +51,6 @@ public class ObjectPlacer : MonoBehaviour
             }
         }
 
-        // Configuration du bouton de suppression
         if (deleteButton != null)
         {
             deleteButton.onClick.AddListener(DeleteSelectedObject);
@@ -60,7 +59,6 @@ public class ObjectPlacer : MonoBehaviour
         selectionMenu.SetActive(false);
         replacementMenu.SetActive(false);
         deleteButton.gameObject.SetActive(false);
-
     }
 
     void Update()
@@ -77,30 +75,46 @@ public class ObjectPlacer : MonoBehaviour
 
     private void HandlePlacementPreview()
     {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
+        // Gérer le toucher pour le placement
+        if (Input.touchCount > 0)
+        {
+            Touch touch = Input.GetTouch(0);
+            Ray ray = Camera.main.ScreenPointToRay(touch.position);
+            RaycastHit hit;
             
-        if (Physics.Raycast(ray, out hit))
-        {
-            previewObject.transform.position = hit.point;
-        }
+            if (Physics.Raycast(ray, out hit))
+            {
+                previewObject.transform.position = hit.point;
 
-        if (Input.GetMouseButtonDown(0))
-        {
-            PlaceSelectedObject();
+                // Commencer le glissement lors du toucher initial
+                if (touch.phase == TouchPhase.Began)
+                {
+                    isDragging = true;
+                }
+                // Mettre à jour la position pendant le glissement
+                else if (touch.phase == TouchPhase.Moved && isDragging)
+                {
+                    previewObject.transform.position = hit.point;
+                }
+                // Placer l'objet lorsque le toucher est relâché
+                else if (touch.phase == TouchPhase.Ended && isDragging)
+                {
+                    PlaceSelectedObject(hit.point);
+                    isDragging = false;
+                }
+            }
         }
     }
 
     private void HandleObjectSelection()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            Ray ray = Camera.main.ScreenPointToRay(Input.GetTouch(0).position);
             RaycastHit hit;
 
             if (Physics.Raycast(ray, out hit))
             {
-                // Vérifier si nous avons cliqué sur un objet placé
                 GameObject clickedObject = hit.collider.gameObject;
                 foreach (GameObject placableObject in placableObjects)
                 {
@@ -212,20 +226,14 @@ public class ObjectPlacer : MonoBehaviour
         }
     }
 
-    void PlaceSelectedObject()
+    void PlaceSelectedObject(Vector3 position)
     {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit))
+        if (selectedObject != null)
         {
-            if (selectedObject != null)
-            {
-                Instantiate(selectedObject, hit.point, Quaternion.identity);
-                Debug.Log("Objet placé à la position : " + hit.point);
-            }
-            CancelPlacement();
+            Instantiate(selectedObject, position, Quaternion.identity);
+            Debug.Log("Objet placé à la position : " + position);
         }
+        CancelPlacement();
     }
 
     public void CancelPlacement()
@@ -237,5 +245,6 @@ public class ObjectPlacer : MonoBehaviour
         currentState = PlacementState.Idle;
         selectionMenu.SetActive(false);
         selectedObject = null;
+        isDragging = false;
     }
 }
