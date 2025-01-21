@@ -124,10 +124,8 @@ public class CharacterMovement : MonoBehaviour
     {
         HandleMovement();
         HandleJoystickRotation();
-        // HandleGyroscopeRotation();
         UpdateAnimator();
         UpdateSpotlight(); 
-        DebugGyroValues();
     }
 
     void HandleMovement()
