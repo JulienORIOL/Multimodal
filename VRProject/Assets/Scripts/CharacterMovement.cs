@@ -1,21 +1,25 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 
 public class CharacterMovement : MonoBehaviour
 {
     [Header("Movement Settings")]
     public float walkSpeed = 3f;
     public float runSpeed = 6f;
-    public float rotationSpeed = 90f;
+    public float rotationSpeed = 3f;
     
-    [Header("Joystick Settings")]
-    public FloatingJoystick variableJoystick;
+    [FormerlySerializedAs("FixedLeftJoystick")] [Header("Joystick Settings")]
+    public FixedJoystick leftJoystick;
+    public FixedJoystick rightJoystick;
     
     [Header("Gyroscope Settings")]
-    public float gyroRotationSpeed = 2f;
-    public bool invertGyroX = false;
-    public bool invertGyroY = false;
+    public float lightGyroSensitivity = 2f;
+    public float maxLightTiltAngle = 30f;
+    public float lightSmoothSpeed = 5f;
+    private Vector3 lightGyroOffset;
+
     
     [Header("Action Buttons")]
     public Button sprintButton;
@@ -23,6 +27,10 @@ public class CharacterMovement : MonoBehaviour
     public Button attackButton;
     public Button gestureButton1;
     public Button gestureButton2;
+    
+    [Header("Light Settings")]
+    public Light spotLight;                    // Référence vers votre spotlight
+    public float lightOffset = 1.5f;           // Distance au-dessus du personnage
 
     private Animator animator;
     private float currentSpeed = 0f;
@@ -38,7 +46,10 @@ public class CharacterMovement : MonoBehaviour
         {
             Debug.LogError("Le composant Animator est manquant !");
         }
-
+        if (spotLight == null)
+        {
+            Debug.LogError("Le composant Spotlight est manquant !");
+        }
         // Récupérer la caméra principale
         cameraTransform = Camera.main.transform;
 
@@ -48,14 +59,14 @@ public class CharacterMovement : MonoBehaviour
         // Configuration des boutons
         SetupButtons();
     }
-
+    
     void EnableGyroscope()
     {
         if (SystemInfo.supportsGyroscope)
         {
             gyro = Input.gyro;
             gyro.enabled = true;
-            initialGyroRotation = Quaternion.Euler(90f, 0f, 0f);
+            initialGyroRotation = Quaternion.Euler(180f, -transform.eulerAngles.y, 0f);
         }
         else
         {
@@ -112,32 +123,22 @@ public class CharacterMovement : MonoBehaviour
     void Update()
     {
         HandleMovement();
-        HandleGyroscopeRotation();
+        HandleJoystickRotation();
+        // HandleGyroscopeRotation();
         UpdateAnimator();
+        UpdateSpotlight();      // Ajoutez cet appel
     }
 
     void HandleMovement()
     {
-        // Obtenir la direction du joystick
-        Vector3 direction = Vector3.forward * variableJoystick.Vertical + Vector3.right * variableJoystick.Horizontal;
-        
-        // Si le joystick est utilisé
+        Vector3 direction = Vector3.forward * leftJoystick.Vertical + Vector3.right * leftJoystick.Horizontal;
+    
         if (direction.magnitude >= 0.1f)
         {
-            // Calculer l'angle de rotation en fonction de la direction du joystick
-            float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cameraTransform.eulerAngles.y;
-            
-            // Appliquer la rotation au personnage
-            transform.rotation = Quaternion.Euler(0f, targetAngle, 0f);
-
-            // Calculer la direction du mouvement en tenant compte de la rotation de la caméra
-            Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-
-            // Calculer la vitesse en fonction du sprint et de l'intensité du joystick
+           // Le déplacement suit la direction du joystick
+            Vector3 moveDir = Quaternion.Euler(0f, cameraTransform.eulerAngles.y, 0f) * direction;
             currentSpeed = isSprinting ? runSpeed : walkSpeed;
-            currentSpeed *= direction.magnitude; // Ajuster la vitesse en fonction de l'intensité du joystick
-
-            // Déplacer le personnage
+            currentSpeed *= direction.magnitude;
             transform.position += moveDir.normalized * currentSpeed * Time.deltaTime;
         }
         else
@@ -145,19 +146,56 @@ public class CharacterMovement : MonoBehaviour
             currentSpeed = 0f;
         }
     }
-
-    void HandleGyroscopeRotation()
+    
+    void HandleJoystickRotation()
     {
-        if (gyro != null && gyro.enabled)
+        if (rightJoystick.Direction.magnitude >= 0.1f)
         {
-            // Conversion des données du gyroscope en rotation de la caméra
-            Quaternion gyroRotation = gyro.attitude;
-            Quaternion rotationOffset = Quaternion.Euler(
-                invertGyroY ? -90 : 90, 
-                invertGyroX ? -gyro.attitude.eulerAngles.x : gyro.attitude.eulerAngles.x, 
-                0
+            // Convertir les angles d'Euler actuels
+            float currentX = cameraTransform.eulerAngles.x;
+            if (currentX > 180f) currentX -= 360f;
+
+            // Appliquer les rotations
+            float newX = currentX - rightJoystick.Vertical * rotationSpeed * Time.deltaTime;
+            float newY = cameraTransform.eulerAngles.y + rightJoystick.Horizontal * rotationSpeed * Time.deltaTime;
+
+            // Appliquer la rotation
+            cameraTransform.rotation = Quaternion.Euler(newX, newY, 0f);
+        }
+    }
+    
+    void UpdateSpotlight()
+    {
+        if (spotLight != null)
+        {
+            // Position de la lumière
+            Vector3 lightPosition = transform.position + Vector3.up * lightOffset;
+            spotLight.transform.position = lightPosition;
+        
+            // Rotation de base (suit la caméra)
+            Quaternion baseRotation = Quaternion.Euler(
+                cameraTransform.eulerAngles.x,
+                cameraTransform.eulerAngles.y,
+                0f
             );
-            cameraTransform.rotation = initialGyroRotation * gyroRotation * rotationOffset;
+
+            // Ajout de l'offset du gyroscope
+            if (gyro != null && gyro.enabled)
+            {
+                Vector3 gyroInput = gyro.attitude.eulerAngles;
+                Vector3 targetOffset = new Vector3(
+                    Mathf.Clamp(gyroInput.x * lightGyroSensitivity, -maxLightTiltAngle, maxLightTiltAngle),
+                    Mathf.Clamp(gyroInput.y * lightGyroSensitivity, -maxLightTiltAngle, maxLightTiltAngle),
+                    0f
+                );
+
+                lightGyroOffset = Vector3.Lerp(lightGyroOffset, targetOffset, Time.deltaTime * lightSmoothSpeed);
+                spotLight.transform.rotation = baseRotation * Quaternion.Euler(lightGyroOffset);
+            }
+            else
+            {
+                spotLight.transform.rotation = baseRotation;
+            }
         }
     }
 
