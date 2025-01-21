@@ -259,8 +259,6 @@ public class RoomData : MonoBehaviour
             int currentOccupancy = currentTimeStudents.Count;
             int roomCapacity = roomInfo.capacity;
 
-            Debug.Log($"[{roomName}] Current occupancy: {currentOccupancy}/{roomCapacity} at {currentHour}");
-
             if (currentOccupancy > 0)
             {
                 details.AppendLine($"<size=14><color=#4CAF50>● In Use</color></size>");
@@ -285,7 +283,6 @@ public class RoomData : MonoBehaviour
 
             schedule.AppendLine("<size=16><b>Today's Schedule:</b></size>");
 
-            // Utiliser studentsByHour qui a été mis à jour par UpdateStudentsList
             if (studentsByHour.Count == 0)
             {
                 schedule.AppendLine("\n<size=14><i>No classes scheduled</i></size>");
@@ -294,10 +291,10 @@ public class RoomData : MonoBehaviour
             {
                 foreach (var hourGroup in studentsByHour.OrderBy(x => x.Key))
                 {
-                    // Trouver les étudiants pour cet horaire dans roomInfo
-                    var studentsInHour = roomInfo.studentsByHour.ContainsKey(hourGroup.Key)
-                        ? roomInfo.studentsByHour[hourGroup.Key]
-                        : new List<StudentInfo>();
+                    // Trouver les étudiants pour cet horaire qui sont dans la liste studentsPresent
+                    var studentsInHour = roomInfo.studentsByHour[hourGroup.Key]
+                        .Where(s => studentsPresent.Contains(s.name))
+                        .ToList();
 
                     if (hourGroup.Key == currentHour)
                     {
@@ -327,22 +324,22 @@ public class RoomData : MonoBehaviour
                         schedule.AppendLine($"<size=12><color=#808080>+ {studentsInHour.Count - 3} more...</color></size>");
                     }
                 }
-            }
 
-            // Statistiques de transport
-            if (studentsPresent.Any() && roomInfo.transportStats != null)
-            {
-                schedule.AppendLine("\n<size=14><b>Transport:</b></size>");
-                var transportStats = roomInfo.transportStats
-                    .OrderByDescending(x => x.Value);
-
-                foreach (var transport in transportStats)
+                // Statistiques de transport
+                if (studentsPresent.Any() && roomInfo.transportStats != null)
                 {
-                    schedule.AppendLine($"<size=13>{transport.Key}: {transport.Value}</size>");
-                }
-            }
+                    schedule.AppendLine("\n<size=14><b>Transport:</b></size>");
+                    var transportStats = roomInfo.transportStats
+                        .OrderByDescending(x => x.Value);
 
-            studentsListText.text = schedule.ToString();
+                    foreach (var transport in transportStats)
+                    {
+                        schedule.AppendLine($"<size=13>{transport.Key}: {transport.Value}</size>");
+                    }
+                }
+
+                studentsListText.text = schedule.ToString();
+            }
         }
     }
 }
