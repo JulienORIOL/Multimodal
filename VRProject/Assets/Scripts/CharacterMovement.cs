@@ -16,7 +16,7 @@ public class CharacterMovement : MonoBehaviour
     
     [Header("Gyroscope Settings")]
     public float lightGyroSensitivity = 2f;
-    public float maxLightTiltAngle = 30f;
+    public float maxLightTiltAngle = 80f;
     public float lightSmoothSpeed = 5f;
     private Vector3 lightGyroOffset;
 
@@ -126,7 +126,8 @@ public class CharacterMovement : MonoBehaviour
         HandleJoystickRotation();
         // HandleGyroscopeRotation();
         UpdateAnimator();
-        UpdateSpotlight();      // Ajoutez cet appel
+        UpdateSpotlight(); 
+        DebugGyroValues();
     }
 
     void HandleMovement()
@@ -152,15 +153,16 @@ public class CharacterMovement : MonoBehaviour
         if (rightJoystick.Direction.magnitude >= 0.1f)
         {
             // Convertir les angles d'Euler actuels
-            float currentX = cameraTransform.eulerAngles.x;
+            float currentX = transform.eulerAngles.x;
             if (currentX > 180f) currentX -= 360f;
 
             // Appliquer les rotations
             float newX = currentX - rightJoystick.Vertical * rotationSpeed * Time.deltaTime;
-            float newY = cameraTransform.eulerAngles.y + rightJoystick.Horizontal * rotationSpeed * Time.deltaTime;
+            float newY = transform.eulerAngles.y + rightJoystick.Horizontal * rotationSpeed * Time.deltaTime;
 
             // Appliquer la rotation
-            cameraTransform.rotation = Quaternion.Euler(newX, newY, 0f);
+            transform.rotation = Quaternion.Euler(newX, newY, 0f);
+            
         }
     }
     
@@ -168,34 +170,51 @@ public class CharacterMovement : MonoBehaviour
     {
         if (spotLight != null)
         {
-            // Position de la lumière
+            // Position de la lumière au-dessus du personnage
             Vector3 lightPosition = transform.position + Vector3.up * lightOffset;
             spotLight.transform.position = lightPosition;
-        
-            // Rotation de base (suit la caméra)
-            Quaternion baseRotation = Quaternion.Euler(
-                cameraTransform.eulerAngles.x,
-                cameraTransform.eulerAngles.y,
-                0f
-            );
 
-            // Ajout de l'offset du gyroscope
             if (gyro != null && gyro.enabled)
             {
-                Vector3 gyroInput = gyro.attitude.eulerAngles;
-                Vector3 targetOffset = new Vector3(
-                    Mathf.Clamp(gyroInput.x * lightGyroSensitivity, -maxLightTiltAngle, maxLightTiltAngle),
-                    Mathf.Clamp(gyroInput.y * lightGyroSensitivity, -maxLightTiltAngle, maxLightTiltAngle),
-                    0f
+                // Conversion de la rotation du gyroscope pour le mode landscape left
+                Quaternion landscapeLeftRotation = Quaternion.Euler(90f, 0f, 0f);
+                Quaternion rawGyroRotation = Input.gyro.attitude;
+            
+                // Correction pour le mode landscape left
+                Quaternion correctedGyroRotation = Quaternion.Euler(
+                    -rawGyroRotation.eulerAngles.x,
+                    -rawGyroRotation.eulerAngles.z,
+                    rawGyroRotation.eulerAngles.y
                 );
 
-                lightGyroOffset = Vector3.Lerp(lightGyroOffset, targetOffset, Time.deltaTime * lightSmoothSpeed);
-                spotLight.transform.rotation = baseRotation * Quaternion.Euler(lightGyroOffset);
+                // Application de la rotation landscape left
+                Quaternion finalRotation = landscapeLeftRotation * correctedGyroRotation;
+
+                // Limitation de l'angle de rotation
+                Vector3 eulerAngles = finalRotation.eulerAngles;
+                eulerAngles.x = Mathf.Clamp(eulerAngles.x, -maxLightTiltAngle, maxLightTiltAngle);
+                eulerAngles.z = Mathf.Clamp(eulerAngles.z, -maxLightTiltAngle, maxLightTiltAngle);
+
+                // Application du lissage
+                spotLight.transform.rotation = Quaternion.Slerp(
+                    spotLight.transform.rotation,
+                    Quaternion.Euler(eulerAngles),
+                    Time.deltaTime * lightSmoothSpeed
+                );
             }
             else
             {
-                spotLight.transform.rotation = baseRotation;
+                // Fallback si le gyroscope n'est pas disponible
+                spotLight.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
             }
+        }
+    }
+    
+    void DebugGyroValues()
+    {
+        if (gyro != null && gyro.enabled)
+        {
+            Debug.Log($"Raw Gyro: X:{gyro.attitude.eulerAngles.x} Y:{gyro.attitude.eulerAngles.y} Z:{gyro.attitude.eulerAngles.z}");
         }
     }
 

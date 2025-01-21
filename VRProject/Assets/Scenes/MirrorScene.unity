@@ -49801,9 +49801,9 @@ MonoBehaviour:
   - {fileID: 2100000, guid: e1c234326677b9a4cb4c94c1478ef5bb, type: 2}
   - {fileID: 2100000, guid: 27d5bc9fe48a1ba4f8389809b897e6cb, type: 2}
   - {fileID: 2100000, guid: 90dcbab6fadc3d84db8a80a47e8012cf, type: 2}
+  - {fileID: 2100000, guid: 7cbaac20d34fa5d4eb775ebf3e14e643, type: 2}
   - {fileID: 2100000, guid: 95db71c87bb7ddc43a6594071030bc9c, type: 2}
   - {fileID: 2100000, guid: 7a72a6e6dc8f7894b982c3d079fd3272, type: 2}
-  - {fileID: 2100000, guid: 3d7b59a287cb2c444baeeaaaba1f7468, type: 2}
   outfitPreviews:
   - {fileID: 21300000, guid: 0b4721c3d4695cb4889ed6220afbf94e, type: 3}
   - {fileID: 21300000, guid: bc8c48cb2c6994e4fbc997bebed3dc25, type: 3}
@@ -49853,8 +49853,8 @@ MonoBehaviour:
   rotationSpeed: 50
   leftJoystick: {fileID: 874739151}
   rightJoystick: {fileID: 409806883}
-  lightGyroSensitivity: 2
-  maxLightTiltAngle: 30
+  lightGyroSensitivity: 4
+  maxLightTiltAngle: 80
   lightSmoothSpeed: 5
   sprintButton: {fileID: 0}
   jumpButton: {fileID: 0}
