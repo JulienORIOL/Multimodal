@@ -62,11 +62,17 @@ public class InteractionLogger : MonoBehaviour
         }
     }
 
+    private float lastLogTime = 0f;
+    private const float LOG_COOLDOWN = 0.5f; // 500ms entre chaque log
+
     public void LogInteraction(string objectName, string interactionType, string details = "")
     {
+        // Éviter le spam de logs
+        if (Time.time - lastLogTime < LOG_COOLDOWN) return;
+
+        lastLogTime = Time.time;
         LogEntry entry = new LogEntry(objectName, interactionType, details);
         interactionLogs.Add(entry);
-        Debug.Log($"New log added: {objectName} - {interactionType} - {details}");  // Ajoutez cette ligne
 
         if (isPanelVisible && logText != null)
         {
@@ -96,7 +102,65 @@ public class InteractionLogger : MonoBehaviour
     private void CreateLogPanel()
     {
         activeLogPanel = logPanel;  // Utiliser le panel existant
+
+        // Configurer le ScrollRect si ce n'est pas déjà fait
+        ScrollRect scrollRect = activeLogPanel.GetComponent<ScrollRect>();
+        if (scrollRect == null)
+        {
+            scrollRect = activeLogPanel.AddComponent<ScrollRect>();
+
+            // Créer ou configurer le Viewport si nécessaire
+            Transform viewportTransform = activeLogPanel.transform.Find("Viewport");
+            if (viewportTransform == null)
+            {
+                GameObject viewport = new GameObject("Viewport", typeof(RectTransform));
+                viewport.transform.SetParent(activeLogPanel.transform, false);
+
+                // Configurer le RectTransform du viewport
+                RectTransform viewportRect = viewport.GetComponent<RectTransform>();
+                viewportRect.anchorMin = Vector2.zero;
+                viewportRect.anchorMax = Vector2.one;
+                viewportRect.sizeDelta = Vector2.zero;
+                viewportRect.anchoredPosition = Vector2.zero;
+
+                // Ajouter les composants nécessaires au viewport
+                Image viewportImage = viewport.AddComponent<Image>();
+                viewportImage.color = new Color(0, 0, 0, 0.1f); // Légèrement visible pour le debug
+                viewport.AddComponent<Mask>();
+
+                viewportTransform = viewport.transform;
+            }
+
+            scrollRect.viewport = viewportTransform as RectTransform;
+            scrollRect.horizontal = false;
+            scrollRect.vertical = true;
+        }
+
+        // Trouver ou créer le LogsText
         logText = activeLogPanel.GetComponentInChildren<TextMeshProUGUI>();
+        if (logText == null)
+        {
+            GameObject textObj = new GameObject("LogsText", typeof(RectTransform));
+            textObj.transform.SetParent(scrollRect.viewport.transform, false);
+            logText = textObj.AddComponent<TextMeshProUGUI>();
+
+            // Configurer le RectTransform du texte
+            RectTransform textRect = textObj.GetComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0, 1);
+            textRect.anchorMax = Vector2.one;
+            textRect.pivot = new Vector2(0.5f, 1);
+            textRect.sizeDelta = new Vector2(0, 0);
+
+            // Configurer le TextMeshPro
+            logText.alignment = TextAlignmentOptions.TopLeft;
+            logText.fontSize = 14;
+            logText.enableWordWrapping = true;
+            logText.margin = new Vector4(10, 10, 10, 10);
+            logText.color = Color.white;
+        }
+
+        // Assigner le contenu au ScrollRect
+        scrollRect.content = logText.GetComponent<RectTransform>();
 
         // Positionner le panel devant la caméra
         logPanel.transform.position = Camera.main.transform.position + Camera.main.transform.forward * 2f;
