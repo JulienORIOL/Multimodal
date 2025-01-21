@@ -1071,10 +1071,50 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefabImagePairs:
-  - imageName: Room420
-    prefab: {fileID: 4659689361068438152, guid: 93895811cf39d3243b57d39f4dee109d, type: 3}
+  - imageName: Infirmery
+    prefab: {fileID: 5201787724144518169, guid: 03a275d2e1fd24808aabe8965bae8067, type: 3}
+  - imageName: Amphitheater
+    prefab: {fileID: 5955051305334848494, guid: 6c032591b71ac4d42a2dd84611c4fbe7, type: 3}
+  - imageName: Cafeteria
+    prefab: {fileID: 5138312447696302949, guid: 060a13604974d408c9e99bba0b413b26, type: 3}
+  - imageName: DirectorOffice
+    prefab: {fileID: 1709650517978121632, guid: 0cbc1959e06814d22975aedcd6662630, type: 3}
+  - imageName: Garden
+    prefab: {fileID: 1489172293199563240, guid: 83b0367845c7249b3a79d11e4496c1d2, type: 3}
+  - imageName: ImmersiveRoom
+    prefab: {fileID: 6482696504744564318, guid: fdf39213ecd2248a582e88feb5e4adeb, type: 3}
+  - imageName: Library
+    prefab: {fileID: 6828071062333925748, guid: 412ece44345e1433f80a2fa364dc8fcc, type: 3}
+  - imageName: MusicClass
+    prefab: {fileID: 132512219064307333, guid: 7063d9009b07e4b31b397fbb5d80286d, type: 3}
+  - imageName: Playground
+    prefab: {fileID: 5310280302704459153, guid: d40ac90387ffe428d8f11668dd7dee36, type: 3}
+  - imageName: RestRoom
+    prefab: {fileID: 619847441131205700, guid: e4136a298e6d64cf1a761a6e327ad295, type: 3}
+  - imageName: Room01
+    prefab: {fileID: 2343187503862345938, guid: e5b3cdb819e6849c99a5f61d2f68fd69, type: 3}
   - imageName: Room02
     prefab: {fileID: 7981223863536714999, guid: f2a8cf374a2cb894ca759724a731231a, type: 3}
+  - imageName: Room03
+    prefab: {fileID: 2537099621768728131, guid: efbd8152ad50b42ecbef06e356c94204, type: 3}
+  - imageName: Room07
+    prefab: {fileID: 3279563666919075886, guid: ba89afe1ffec54038a1a0520794a4af1, type: 3}
+  - imageName: Room25
+    prefab: {fileID: 8275457591404273057, guid: d26cc414136524518beb435753dc36ba, type: 3}
+  - imageName: Room42
+    prefab: {fileID: 4659689361068438152, guid: 93895811cf39d3243b57d39f4dee109d, type: 3}
+  - imageName: Room260
+    prefab: {fileID: 7402511100063218883, guid: 27343027727484fc8ab456af54d340b4, type: 3}
+  - imageName: Room420
+    prefab: {fileID: 4659689361068438152, guid: 93895811cf39d3243b57d39f4dee109d, type: 3}
+  - imageName: Room507
+    prefab: {fileID: 7420598811242030468, guid: d30d003aed6e24aec837b73caad57eeb, type: 3}
+  - imageName: Room682
+    prefab: {fileID: 8116056925738384637, guid: 50470719b018b423c850bed0ef5d6a50, type: 3}
+  - imageName: Secretariat
+    prefab: {fileID: 6393833772025816477, guid: cccdc4f7a68ef4da18826f70f7a28868, type: 3}
+  - imageName: SwimmingPool
+    prefab: {fileID: 6222011857598201819, guid: d5bb1c531266242de988de95fecfb06a, type: 3}
   infoPanelPrefab: {fileID: 2183593545951953800, guid: a6e97865515546b4591c582b28aa529a, type: 3}
   smoothSpeed: 5
   rotationSmoothSpeed: 5
@@ -1164,7 +1204,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0.011520386, y: 0.0024414062}
+  m_AnchoredPosition: {x: 0.0057678223, y: 0.0024414062}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1026182634
@@ -1619,8 +1659,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2005569494}
   m_HandleRect: {fileID: 2005569493}
   m_Direction: 0
-  m_Value: 1
-  m_Size: 0.99998325
+  m_Value: 0
+  m_Size: 0.9999747
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:

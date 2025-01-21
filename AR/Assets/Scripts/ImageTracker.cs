@@ -15,8 +15,8 @@ public class ImageTracker : MonoBehaviour
 
     [SerializeField] private PrefabImagePair[] prefabImagePairs;
     [SerializeField] private GameObject infoPanelPrefab;
-    [SerializeField] private float smoothSpeed = 5f; // Vitesse de lissage
-    [SerializeField] private float rotationSmoothSpeed = 5f; // Vitesse de lissage pour la rotation
+    [SerializeField] private float smoothSpeed = 5f;
+    [SerializeField] private float rotationSmoothSpeed = 5f;
 
     private ARTrackedImageManager trackedImageManager;
     private Dictionary<string, GameObject> spawnedObjects = new Dictionary<string, GameObject>();
