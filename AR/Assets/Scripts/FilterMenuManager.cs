@@ -227,6 +227,16 @@ public class FilterMenuManager : MonoBehaviour
         string specializationFilter = specializationDropdown.value == 0 ? "" : specializationDropdown.options[specializationDropdown.value].text;
         string transportFilter = transportDropdown.value == 0 ? "" : transportDropdown.options[transportDropdown.value].text;
 
+
+        // Log l'application des filtres
+        if (timeFilter != "" || specializationFilter != "" || transportFilter != "")
+        {
+            InteractionLogger.Instance.LogInteraction(
+                "FilterMenu",
+                "Filters Changed",
+                $"Time: {timeFilter}, Spec: {specializationFilter}, Transport: {transportFilter}"
+            );
+        }
         // Filtrer les étudiants
         var filteredStudents = allStudents.Where(s =>
             (string.IsNullOrEmpty(timeFilter) || s.schedule == timeFilter) &&

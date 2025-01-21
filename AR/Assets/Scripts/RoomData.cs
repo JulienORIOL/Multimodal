@@ -157,6 +157,13 @@ public class RoomData : MonoBehaviour
         Debug.Log($"Room {roomName} clicked!");
         isInfoVisible = !isInfoVisible;
 
+        // Log l'interaction
+        InteractionLogger.Instance.LogInteraction(
+            roomName,
+            isInfoVisible ? "Panel Opened" : "Panel Closed",
+            $"Students present: {studentsPresent.Count}"
+        );
+
         if (infoPanel != null)
         {
             infoPanel.SetActive(isInfoVisible);
@@ -196,6 +203,8 @@ public class RoomData : MonoBehaviour
         studentsByHour.Clear();
         studentsPresent.Clear();
 
+
+
         foreach (var student in roomStudents)
         {
             if (!studentsByHour.ContainsKey(student.schedule))
@@ -203,6 +212,12 @@ public class RoomData : MonoBehaviour
             
             studentsByHour[student.schedule]++;
             studentsPresent.Add(student.name);
+        }
+
+        if (!string.IsNullOrEmpty(timeFilter) || !string.IsNullOrEmpty(specFilter) || !string.IsNullOrEmpty(transportFilter))
+        {
+            string filterDetails = $"Filters - Time: {timeFilter}, Spec: {specFilter}, Transport: {transportFilter}";
+            InteractionLogger.Instance.LogInteraction(roomName, "Filters Applied", filterDetails);
         }
 
         // Mettre à jour le panneau si visible
