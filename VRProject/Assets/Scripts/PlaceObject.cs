@@ -15,6 +15,9 @@ public class ObjectPlacer : MonoBehaviour
     private GameObject previewObject;
     private GameObject objectToReplace;
     private bool isDragging = false;
+    public AudioClip placeObjectSound;
+    public AudioClip removeObjectSound;
+    private AudioSource audioSource;
     
     private enum PlacementState
     {
@@ -48,6 +51,13 @@ public class ObjectPlacer : MonoBehaviour
                         text.text = placableObjects[i].name;
                     }
                 }
+            }
+
+            audioSource = GetComponent<AudioSource>();
+
+            if (audioSource == null)
+            {
+                Debug.LogError("AudioSource manquant sur l'objet !");
             }
         }
 
@@ -195,6 +205,14 @@ public class ObjectPlacer : MonoBehaviour
     {
         if (objectToReplace != null)
         {
+            if (removeObjectSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(removeObjectSound);
+            }
+            else
+            {
+                Debug.LogWarning("Aucun son ou AudioSource configuré pour le retrait d'objet !");
+            }
             Destroy(objectToReplace);
             CancelReplacement();
         }
@@ -230,6 +248,14 @@ public class ObjectPlacer : MonoBehaviour
     {
         if (selectedObject != null)
         {
+            if (placeObjectSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(placeObjectSound);
+            }
+            else
+            {
+                Debug.LogWarning("Aucun son ou AudioSource configuré pour le placement d'objet !");
+            }
             Instantiate(selectedObject, position, Quaternion.identity);
             Debug.Log("Objet placé à la position : " + position);
         }
