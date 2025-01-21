@@ -4,25 +4,34 @@ using UnityEngine.UI;
 public class OutfitMenuManager : MonoBehaviour
 {
     [Header("UI References")]
-    public GameObject outfitPanel;        // Référence vers votre panel
-    public Button toggleMenuButton;       // Référence vers votre bouton
+    public GameObject outfitPanel;        // Rï¿½fï¿½rence vers votre panel
+    public Button toggleMenuButton;       // Rï¿½fï¿½rence vers votre bouton
     public Button outfitButtonPrefab;
 
     [Header("Character References")]
     public SkinnedMeshRenderer characterMesh;
     public Material[] outfitMaterials;
     public Sprite[] outfitPreviews;
+    public AudioClip changeOutfitSound;
+    private AudioSource audioSource;
 
-    private bool isMenuVisible = false;   // État du menu
+    private bool isMenuVisible = false;   // ï¿½tat du menu
 
     void Start()
     {
-        // S'assurer que le panel est caché au démarrage
+        // S'assurer que le panel est cachï¿½ au dï¿½marrage
         outfitPanel.SetActive(false);
 
         // Ajouter le listener pour le bouton
         toggleMenuButton.onClick.AddListener(ToggleMenu);
         CreateOutfitButtons();
+
+        audioSource = GetComponent<AudioSource>();
+
+        if (audioSource == null)
+        {
+            Debug.LogError("AudioSource manquant sur l'objet !");
+        }
     }
 
     void ToggleMenu()
@@ -34,11 +43,11 @@ public class OutfitMenuManager : MonoBehaviour
 
     void CreateOutfitButtons()
     {
-        // Créer un bouton pour chaque material
+        // Crï¿½er un bouton pour chaque material
         for (int i = 0; i < outfitMaterials.Length; i++)
         {
             Button newButton = Instantiate(outfitButtonPrefab, outfitPanel.transform);
-            int index = i; // Nécessaire pour la capture dans le lambda
+            int index = i; // Nï¿½cessaire pour la capture dans le lambda
             newButton.onClick.AddListener(() => ChangeOutfit(index));
             newButton.gameObject.SetActive(true);
 
@@ -64,6 +73,15 @@ public class OutfitMenuManager : MonoBehaviour
             Material[] materials = characterMesh.materials;
             materials[0] = outfitMaterials[materialIndex];  // Change le premier material
             characterMesh.materials = materials;
+            
+            if (changeOutfitSound != null && audioSource != null)
+            {
+                audioSource.PlayOneShot(changeOutfitSound);
+            }
+            else
+            {
+                Debug.LogWarning("Aucun son ou AudioSource configurÃ© pour le changement d'outfit !");
+            }
         }
     }
 }
