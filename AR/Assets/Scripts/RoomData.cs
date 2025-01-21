@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using System.Linq;
 using System.Text;
 using System;
+using UnityEngine.EventSystems;
 
 public class RoomData : MonoBehaviour
 {
@@ -20,7 +21,9 @@ public class RoomData : MonoBehaviour
     private TextMeshProUGUI roomDetailsText;
     private TextMeshProUGUI studentsListText;
     private RawImage evacuationMapImage;
-    private Image panelBackground;  // Nouvelle référence pour le background
+    private Image panelBackground;
+    private Outline panelOutline;
+
     private float pulseTimer = 0f;
     private const float PULSE_SPEED = 2f;
     private const float PULSE_MIN_ALPHA = 0.6f;
@@ -39,7 +42,14 @@ public class RoomData : MonoBehaviour
     void Start()
     {
         mainCamera = Camera.main;
+        InitializePanelComponents();
+        
+        // Charger les informations de la salle depuis DataManager
+        roomInfo = DataManager.Instance.GetRoomInfo(roomName);
+    }
 
+    private void InitializePanelComponents()
+    {
         if (infoPanel != null)
         {
             // Configuration du RectTransform
@@ -65,39 +75,34 @@ public class RoomData : MonoBehaviour
                 panelBackground.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
 
                 // Ajout d'un effet de contour
-                var outline = panelTransform.GetComponent<Outline>();
-                if (outline == null)
+                panelOutline = panelTransform.GetComponent<Outline>();
+                if (panelOutline == null)
                 {
-                    outline = panelTransform.gameObject.AddComponent<Outline>();
-                    outline.effectColor = new Color(0.2f, 0.6f, 1f, 0.5f); // Bleu clair semi-transparent
-                    outline.effectDistance = new Vector2(2, -2);
+                    panelOutline = panelTransform.gameObject.AddComponent<Outline>();
+                    panelOutline.effectColor = new Color(0.2f, 0.6f, 1f, 0.5f); // Bleu clair semi-transparent
+                    panelOutline.effectDistance = new Vector2(2, -2);
                 }
 
                 roomDetailsText = panelTransform.Find("RoomDetails")?.GetComponent<TextMeshProUGUI>();
                 studentsListText = panelTransform.Find("StudentsListText")?.GetComponent<TextMeshProUGUI>();
 
-                if (roomDetailsText != null)
-                {
-                    roomDetailsText.alignment = TextAlignmentOptions.Left;
-                    roomDetailsText.fontSize = 18;
-                    roomDetailsText.enableWordWrapping = true;
-                    roomDetailsText.margin = new Vector4(5, 5, 5, 5);
-                    // Assurer que le texte est bien visible sur le fond sombre
-                    roomDetailsText.color = Color.white;
-                }
-
-                if (studentsListText != null)
-                {
-                    studentsListText.alignment = TextAlignmentOptions.Left;
-                    studentsListText.fontSize = 16;
-                    studentsListText.enableWordWrapping = true;
-                    studentsListText.margin = new Vector4(5, 5, 5, 5);
-                    // Assurer que le texte est bien visible sur le fond sombre
-                    studentsListText.color = Color.white;
-                }
+                ConfigureTextComponent(roomDetailsText, 18);
+                ConfigureTextComponent(studentsListText, 16);
             }
 
             infoPanel.SetActive(false);
+        }
+    }
+
+    private void ConfigureTextComponent(TextMeshProUGUI textComponent, int fontSize)
+    {
+        if (textComponent != null)
+        {
+            textComponent.alignment = TextAlignmentOptions.Left;
+            textComponent.fontSize = fontSize;
+            textComponent.enableWordWrapping = true;
+            textComponent.margin = new Vector4(5, 5, 5, 5);
+            textComponent.color = Color.white;
         }
     }
 
@@ -155,29 +160,77 @@ public class RoomData : MonoBehaviour
         }
     }
 
+    public void UpdateStudentsList(List<StudentData> filteredStudents, string timeFilter = "", string specFilter = "", string transportFilter = "")
+    {
+        // Filtrer les étudiants pour cette salle en fonction des filtres
+        var roomStudents = filteredStudents.Where(s => 
+            s.room == roomName && 
+            (string.IsNullOrEmpty(timeFilter) || s.schedule == timeFilter) &&
+            (string.IsNullOrEmpty(specFilter) || s.specialization == specFilter) &&
+            (string.IsNullOrEmpty(transportFilter) || s.transport == transportFilter)
+        ).ToList();
+
+        // Mettre à jour les statistiques par heure
+        studentsByHour.Clear();
+        studentsPresent.Clear();
+
+        foreach (var student in roomStudents)
+        {
+            if (!studentsByHour.ContainsKey(student.schedule))
+                studentsByHour[student.schedule] = 0;
+            
+            studentsByHour[student.schedule]++;
+            studentsPresent.Add(student.name);
+        }
+
+        // Mettre à jour le panneau si visible
+        if (isInfoVisible)
+        {
+            UpdateInfoPanel();
+        }
+    }
+
+    public Dictionary<string, int> GetStudentsBySpecialization()
+    {
+        if (roomInfo == null) return new Dictionary<string, int>();
+        return roomInfo.specializationStats;
+    }
+
+    public Dictionary<string, int> GetStudentsByTransport()
+    {
+        if (roomInfo == null) return new Dictionary<string, int>();
+        return roomInfo.transportStats;
+    }
+
     private void UpdateInfoPanel()
     {
-        if (roomInfo == null) return;
-
         if (roomDetailsText != null)
         {
             StringBuilder details = new StringBuilder();
-            string currentHour = $"{System.DateTime.Now.Hour}h";
+            string currentHour = $"{DateTime.Now.Hour}h";
 
             details.AppendLine($"<size=20><color=#2196F3><b>{roomName}</b></color></size>\n");
 
-            var currentStudents = roomInfo.studentsByHour.ContainsKey(currentHour) ?
-                roomInfo.studentsByHour[currentHour].Count : 0;
+            // Calculer l'occupation actuelle en fonction des étudiants
+            var currentTimeStudents = studentsPresent.Where(s => 
+                roomInfo.studentsByHour.ContainsKey(currentHour) && 
+                roomInfo.studentsByHour[currentHour].Any(student => student.name == s)
+            ).ToList();
 
-            if (currentStudents > 0)
+            int currentOccupancy = currentTimeStudents.Count;
+            int roomCapacity = roomInfo.capacity;
+
+            Debug.Log($"[{roomName}] Current occupancy: {currentOccupancy}/{roomCapacity} at {currentHour}");
+
+            if (currentOccupancy > 0)
             {
                 details.AppendLine($"<size=14><color=#4CAF50>● In Use</color></size>");
-                details.AppendLine($"<size=14>Seats: {currentStudents}/{roomInfo.capacity}</size>");
+                details.AppendLine($"<size=14>Seats: {currentOccupancy}/{roomCapacity}</size>");
             }
             else
             {
                 details.AppendLine($"<size=14><color=#FFA000>● Empty</color></size>");
-                details.AppendLine($"<size=14>All seats available ({roomInfo.capacity})</size>");
+                details.AppendLine($"<size=14>All seats available ({roomCapacity})</size>");
             }
 
             roomDetailsText.text = details.ToString();
@@ -186,46 +239,56 @@ public class RoomData : MonoBehaviour
         if (studentsListText != null)
         {
             StringBuilder schedule = new StringBuilder();
-            string currentHour = $"{System.DateTime.Now.Hour}h";
-
-            float pulseAlpha = Mathf.Lerp(PULSE_MIN_ALPHA, PULSE_MAX_ALPHA, (Mathf.Sin(pulseTimer) + 1f) / 2f);
-            string pulseHexAlpha = Mathf.RoundToInt(pulseAlpha * 255).ToString("X2");
+            string currentHour = $"{DateTime.Now.Hour}h";
 
             schedule.AppendLine("<size=16><b>Today's Schedule:</b></size>");
 
-            if (roomInfo.studentsByHour.Count == 0)
+            var hourGroups = studentsByHour
+                .OrderBy(x => x.Key)
+                .ToDictionary(x => x.Key, x => x.Value);
+
+            Debug.Log($"[{roomName}] Found {hourGroups.Count} time slots with students");
+
+            if (hourGroups.Count == 0)
             {
                 schedule.AppendLine("\n<size=14><i>No classes scheduled</i></size>");
             }
             else
             {
-                foreach (var hourData in roomInfo.studentsByHour.OrderBy(x => x.Key))
+                foreach (var hourGroup in hourGroups)
                 {
-                    if (hourData.Key == currentHour)
+                    if (hourGroup.Key == currentHour)
                     {
-                        schedule.AppendLine($"\n<size=14><color=#FF4081{pulseHexAlpha}><b>▶ {hourData.Key}</b></color> ({hourData.Value.Count} students)</size>");
-                    }
-                    else
-                    {
-                        schedule.AppendLine($"\n<size=14><color=#FFFFFF>{hourData.Key}</color> ({hourData.Value.Count} students)</size>");
-                    }
-
-                    for (int i = 0; i < Math.Min(3, hourData.Value.Count); i++)
-                    {
-                        var student = hourData.Value[i];
-                        if (hourData.Key == currentHour)
+                        schedule.AppendLine($"\n<size=14><color=#FF4081>▶ {hourGroup.Key}</color> ({hourGroup.Value} students)</size>");
+                        
+                        // Afficher les noms des étudiants pour l'heure actuelle
+                        var studentsInCurrentHour = roomInfo.studentsByHour[currentHour];
+                        foreach (var student in studentsInCurrentHour.Take(3))
                         {
                             schedule.AppendLine($"<size=13><color=#FF4081>• {student.name} ({student.specialization})</color></size>");
                         }
-                        else
+
+                        if (studentsInCurrentHour.Count > 3)
                         {
-                            schedule.AppendLine($"<size=13><color=#E0E0E0>• {student.name} ({student.specialization})</color></size>");
+                            schedule.AppendLine($"<size=12><color=#808080>+ {studentsInCurrentHour.Count - 3} more...</color></size>");
                         }
                     }
-
-                    if (hourData.Value.Count > 3)
+                    else
                     {
-                        schedule.AppendLine($"<size=12><color=#808080>+ {hourData.Value.Count - 3} more...</color></size>");
+                        schedule.AppendLine($"\n<size=14>{hourGroup.Key} ({hourGroup.Value} students)</size>");
+                    }
+                }
+
+                // Statistiques de transport
+                if (studentsPresent.Any())
+                {
+                    schedule.AppendLine("\n<size=14><b>Transport:</b></size>");
+                    var transportStats = roomInfo.transportStats
+                        .OrderByDescending(x => x.Value);
+
+                    foreach (var transport in transportStats)
+                    {
+                        schedule.AppendLine($"<size=13>{transport.Key}: {transport.Value}</size>");
                     }
                 }
             }

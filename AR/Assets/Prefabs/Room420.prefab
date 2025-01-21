@@ -20,7 +20,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5763562293133097000
 Transform:
   m_ObjectHideFlags: 0
@@ -119,9 +119,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 908f3f569f7f32d48bbc4b8bc043b582, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  roomName: 
+  infoPanel: {fileID: 7012166588496314651, guid: be7e1d4dc95e5c34baa335550e754015, type: 3}
+  studentMarkerPrefab: {fileID: 6674242193181166179, guid: 13053c3701c38420a9944f4361dfa771, type: 3}
+  roomName: Room420
   studentsPresent: []
-  infoPanel: {fileID: 0}
 --- !u!114 &1482963853618274438
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -20,8 +20,23 @@ public class ImageTracker : MonoBehaviour
 
     private ARTrackedImageManager trackedImageManager;
     private Dictionary<string, GameObject> spawnedObjects = new Dictionary<string, GameObject>();
+    private Dictionary<string, GameObject> prefabsDictionary = new Dictionary<string, GameObject>();
+    private Dictionary<string, bool> roomVisibility = new Dictionary<string, bool>();
     private Dictionary<string, Vector3> targetPositions = new Dictionary<string, Vector3>();
     private Dictionary<string, Quaternion> targetRotations = new Dictionary<string, Quaternion>();
+
+    private string currentTimeFilter = "";
+    private string currentSpecFilter = "";
+    private string currentTransportFilter = "";
+
+    private void Start()
+    {
+        foreach (var pair in prefabImagePairs)
+        {
+            prefabsDictionary.Add(pair.imageName, pair.prefab);
+            roomVisibility[pair.imageName] = true;
+        }
+    }
 
     private void Awake()
     {
@@ -63,6 +78,79 @@ public class ImageTracker : MonoBehaviour
                 );
             }
         }
+    }
+
+    public void UpdateFilters(string timeFilter, string specFilter, string transportFilter)
+    {
+        currentTimeFilter = timeFilter;
+        currentSpecFilter = specFilter;
+        currentTransportFilter = transportFilter;
+
+        // Mettre à jour la visibilité de toutes les salles
+        foreach (string roomName in prefabsDictionary.Keys)
+        {
+            bool shouldBeVisible = CheckRoomMatchesFilters(roomName);
+            roomVisibility[roomName] = shouldBeVisible;
+
+            // Mettre à jour la visibilité des objets déjà instanciés
+            if (spawnedObjects.TryGetValue(roomName, out GameObject spawnedObject))
+            {
+                if (spawnedObject != null)
+                {
+                    spawnedObject.SetActive(shouldBeVisible);
+                }
+            }
+        }
+    }
+
+    private bool CheckRoomMatchesFilters(string roomName)
+    {
+        if (string.IsNullOrEmpty(currentTimeFilter) && 
+            string.IsNullOrEmpty(currentSpecFilter) && 
+            string.IsNullOrEmpty(currentTransportFilter))
+        {
+            return true; // Si aucun filtre n'est actif, la salle est visible
+        }
+
+        RoomData roomData = null;
+        if (spawnedObjects.TryGetValue(roomName, out GameObject spawnedObject))
+        {
+            roomData = spawnedObject.GetComponent<RoomData>();
+        }
+
+        if (roomData == null) return false;
+
+        // Vérifier le filtre de temps
+        if (!string.IsNullOrEmpty(currentTimeFilter))
+        {
+            if (!roomData.studentsByHour.ContainsKey(currentTimeFilter) || 
+                roomData.studentsByHour[currentTimeFilter] == 0)
+            {
+                return false;
+            }
+        }
+
+        // Vérifier la spécialisation
+        if (!string.IsNullOrEmpty(currentSpecFilter))
+        {
+            if (!roomData.GetStudentsBySpecialization().ContainsKey(currentSpecFilter) ||
+                roomData.GetStudentsBySpecialization()[currentSpecFilter] == 0)
+            {
+                return false;
+            }
+        }
+
+        // Vérifier le transport
+        if (!string.IsNullOrEmpty(currentTransportFilter))
+        {
+            if (!roomData.GetStudentsByTransport().ContainsKey(currentTransportFilter) ||
+                roomData.GetStudentsByTransport()[currentTransportFilter] == 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void OnTrackedImagesChanged(ARTrackedImagesChangedEventArgs eventArgs)
@@ -116,7 +204,25 @@ public class ImageTracker : MonoBehaviour
             roomData.roomName = imageName;
             roomData.roomInfo = DataManager.Instance.GetRoomInfo(imageName);
             GameObject infoPanel = Instantiate(infoPanelPrefab, spawnedObject.transform);
+            
+            RectTransform rectTransform = infoPanel.GetComponent<RectTransform>();
+            if (rectTransform != null)
+            {
+                rectTransform.localPosition = new Vector3(0, 1f, 0);
+            }
+
+            Canvas canvas = infoPanel.GetComponent<Canvas>();
+            if (canvas != null)
+            {
+                canvas.worldCamera = Camera.main;
+            }
+
             roomData.infoPanel = infoPanel;
+            infoPanel.SetActive(false);
+
+            // Appliquer la visibilité en fonction des filtres
+            spawnedObject.SetActive(roomVisibility[imageName]);
+            spawnedObject.transform.parent = trackedImage.transform;
         }
 
         return spawnedObject;
@@ -131,7 +237,7 @@ public class ImageTracker : MonoBehaviour
             if (trackedImage.trackingState == TrackingState.Tracking)
             {
                 obj.SetActive(true);
-                // Mettre � jour les positions cibles plut�t que directement la position
+                // Mettre à jour les positions cibles plutôt que directement la position
                 targetPositions[imageName] = trackedImage.transform.position;
                 targetRotations[imageName] = trackedImage.transform.rotation;
             }
