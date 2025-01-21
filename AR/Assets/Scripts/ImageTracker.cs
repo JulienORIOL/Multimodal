@@ -2,9 +2,6 @@ using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 using System.Collections.Generic;
-using System.IO;
-using System;
-using TMPro;
 using System.Linq;
 
 public class ImageTracker : MonoBehaviour
@@ -16,22 +13,15 @@ public class ImageTracker : MonoBehaviour
         public GameObject prefab;
     }
 
-    [SerializeField]
-    private PrefabImagePair[] prefabImagePairs;
-    [SerializeField]
-    private GameObject infoPanelPrefab;
+    [SerializeField] private PrefabImagePair[] prefabImagePairs;
+    [SerializeField] private GameObject infoPanelPrefab;
+    [SerializeField] private float smoothSpeed = 5f; // Vitesse de lissage
+    [SerializeField] private float rotationSmoothSpeed = 5f; // Vitesse de lissage pour la rotation
 
     private ARTrackedImageManager trackedImageManager;
     private Dictionary<string, GameObject> spawnedObjects = new Dictionary<string, GameObject>();
-
-    private void Start()
-    {
-        Debug.Log("Available prefabs:");
-        foreach (var pair in prefabImagePairs)
-        {
-            Debug.Log($"Image: {pair.imageName}, Prefab: {(pair.prefab != null ? pair.prefab.name : "null")}");
-        }
-    }
+    private Dictionary<string, Vector3> targetPositions = new Dictionary<string, Vector3>();
+    private Dictionary<string, Quaternion> targetRotations = new Dictionary<string, Quaternion>();
 
     private void Awake()
     {
@@ -48,71 +38,119 @@ public class ImageTracker : MonoBehaviour
         trackedImageManager.trackedImagesChanged -= OnTrackedImagesChanged;
     }
 
+    private void Update()
+    {
+        // Smooth movement update
+        foreach (var entry in spawnedObjects)
+        {
+            string imageName = entry.Key;
+            GameObject obj = entry.Value;
+
+            if (targetPositions.ContainsKey(imageName) && targetRotations.ContainsKey(imageName))
+            {
+                // Position smoothing
+                obj.transform.position = Vector3.Lerp(
+                    obj.transform.position,
+                    targetPositions[imageName],
+                    Time.deltaTime * smoothSpeed
+                );
+
+                // Rotation smoothing
+                obj.transform.rotation = Quaternion.Lerp(
+                    obj.transform.rotation,
+                    targetRotations[imageName],
+                    Time.deltaTime * rotationSmoothSpeed
+                );
+            }
+        }
+    }
+
     private void OnTrackedImagesChanged(ARTrackedImagesChangedEventArgs eventArgs)
     {
         foreach (var trackedImage in eventArgs.added)
         {
-            string imageName = trackedImage.referenceImage.name;
-            Debug.Log($"Detected image: {imageName}");
-
-            // Vérifier si l'image est valide ET si son prefab existe
-            var validPair = prefabImagePairs.FirstOrDefault(p => p.imageName == imageName && p.prefab != null);
-            if (validPair.prefab == null)
-            {
-                Debug.Log($"No valid prefab found for image: {imageName}");
-                continue;
-            }
-
-            // Supprimer l'ancien objet s'il existe
-            if (spawnedObjects.ContainsKey(imageName))
-            {
-                Destroy(spawnedObjects[imageName]);
-                spawnedObjects.Remove(imageName);
-            }
-
-            // Création de l'objet
-            GameObject spawnedObject = Instantiate(validPair.prefab, trackedImage.transform.position, trackedImage.transform.rotation);
-            RoomData roomData = spawnedObject.GetComponent<RoomData>();
-
-            if (roomData != null)
-            {
-                roomData.roomName = imageName;
-                roomData.roomInfo = DataManager.Instance.GetRoomInfo(imageName);
-
-                GameObject infoPanel = Instantiate(infoPanelPrefab, spawnedObject.transform);
-                roomData.infoPanel = infoPanel;
-            }
-
-            spawnedObject.transform.parent = trackedImage.transform;
-            spawnedObjects.Add(imageName, spawnedObject);
+            HandleAddedImage(trackedImage);
         }
 
-        // Mise à jour des objets existants
         foreach (var trackedImage in eventArgs.updated)
         {
-            string imageName = trackedImage.referenceImage.name;
-            if (spawnedObjects.TryGetValue(imageName, out GameObject spawnedObject))
-            {
-                spawnedObject.SetActive(trackedImage.trackingState == TrackingState.Tracking);
-
-                // Mettre à jour la position uniquement si l'objet est suivi
-                if (trackedImage.trackingState == TrackingState.Tracking)
-                {
-                    spawnedObject.transform.position = trackedImage.transform.position;
-                    spawnedObject.transform.rotation = trackedImage.transform.rotation;
-                }
-            }
+            HandleUpdatedImage(trackedImage);
         }
 
-        // Suppression des objets non suivis
         foreach (var trackedImage in eventArgs.removed)
         {
-            string imageName = trackedImage.referenceImage.name;
-            if (spawnedObjects.TryGetValue(imageName, out GameObject spawnedObject))
+            HandleRemovedImage(trackedImage);
+        }
+    }
+
+    private void HandleAddedImage(ARTrackedImage trackedImage)
+    {
+        string imageName = trackedImage.referenceImage.name;
+        var validPair = prefabImagePairs.FirstOrDefault(p => p.imageName == imageName && p.prefab != null);
+
+        if (validPair.prefab == null)
+        {
+            Debug.Log($"No valid prefab found for image: {imageName}");
+            return;
+        }
+
+        if (spawnedObjects.ContainsKey(imageName))
+        {
+            Destroy(spawnedObjects[imageName]);
+            spawnedObjects.Remove(imageName);
+        }
+
+        GameObject spawnedObject = InstantiateAndSetupPrefab(validPair.prefab, trackedImage, imageName);
+        spawnedObjects.Add(imageName, spawnedObject);
+        targetPositions[imageName] = trackedImage.transform.position;
+        targetRotations[imageName] = trackedImage.transform.rotation;
+    }
+
+    private GameObject InstantiateAndSetupPrefab(GameObject prefab, ARTrackedImage trackedImage, string imageName)
+    {
+        GameObject spawnedObject = Instantiate(prefab, trackedImage.transform.position, trackedImage.transform.rotation);
+        RoomData roomData = spawnedObject.GetComponent<RoomData>();
+
+        if (roomData != null)
+        {
+            roomData.roomName = imageName;
+            roomData.roomInfo = DataManager.Instance.GetRoomInfo(imageName);
+            GameObject infoPanel = Instantiate(infoPanelPrefab, spawnedObject.transform);
+            roomData.infoPanel = infoPanel;
+        }
+
+        return spawnedObject;
+    }
+
+    private void HandleUpdatedImage(ARTrackedImage trackedImage)
+    {
+        string imageName = trackedImage.referenceImage.name;
+
+        if (spawnedObjects.TryGetValue(imageName, out GameObject obj))
+        {
+            if (trackedImage.trackingState == TrackingState.Tracking)
             {
-                Destroy(spawnedObject);
-                spawnedObjects.Remove(imageName);
+                obj.SetActive(true);
+                // Mettre à jour les positions cibles plutôt que directement la position
+                targetPositions[imageName] = trackedImage.transform.position;
+                targetRotations[imageName] = trackedImage.transform.rotation;
             }
+            else
+            {
+                obj.SetActive(false);
+            }
+        }
+    }
+
+    private void HandleRemovedImage(ARTrackedImage trackedImage)
+    {
+        string imageName = trackedImage.referenceImage.name;
+        if (spawnedObjects.TryGetValue(imageName, out GameObject obj))
+        {
+            targetPositions.Remove(imageName);
+            targetRotations.Remove(imageName);
+            Destroy(obj);
+            spawnedObjects.Remove(imageName);
         }
     }
 }

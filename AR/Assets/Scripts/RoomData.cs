@@ -30,6 +30,12 @@ public class RoomData : MonoBehaviour
     private float updateInterval = 1f;
     private float nextUpdateTime;
 
+
+    private const float PANEL_PULSE_SPEED = 3f; // Vitesse de l'animation
+    private const float PANEL_MIN_SCALE = 0.98f; // Échelle minimale
+    private const float PANEL_MAX_SCALE = 1.02f; // Échelle maximale
+    private Vector3 originalPanelScale; // Pour stocker l'échelle initiale
+
     void Start()
     {
         mainCamera = Camera.main;
@@ -43,6 +49,7 @@ public class RoomData : MonoBehaviour
                 panelRect.anchoredPosition = new Vector3(0.3f, 0.15f, 0);
                 panelRect.localScale = new Vector3(0.004f, 0.004f, 0.004f);
             }
+            originalPanelScale = new Vector3(0.004f, 0.004f, 0.004f);
 
             // Récupération du Panel et configuration du background
             Transform panelTransform = infoPanel.transform.Find("Panel");
@@ -98,6 +105,9 @@ public class RoomData : MonoBehaviour
     {
         if (infoPanel != null && infoPanel.activeSelf)
         {
+            float panelPulse = (Mathf.Sin(Time.time * PANEL_PULSE_SPEED) + 1f) / 2f;
+            float currentScale = Mathf.Lerp(PANEL_MIN_SCALE, PANEL_MAX_SCALE, panelPulse);
+            infoPanel.transform.localScale = originalPanelScale * currentScale;
             // Billboard effect
             Vector3 lookAtPos = mainCamera.transform.position;
             lookAtPos.y = infoPanel.transform.position.y;
