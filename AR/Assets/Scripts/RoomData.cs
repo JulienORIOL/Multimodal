@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System;
 
-
 public class RoomData : MonoBehaviour
 {
     public string roomName;
@@ -21,9 +20,11 @@ public class RoomData : MonoBehaviour
     private TextMeshProUGUI roomDetailsText;
     private TextMeshProUGUI studentsListText;
     private RawImage evacuationMapImage;
-
-    private enum InfoTab { Overview, Schedule, Statistics }
-    private InfoTab currentTab = InfoTab.Overview;
+    private Image panelBackground;  // Nouvelle référence pour le background
+    private float pulseTimer = 0f;
+    private const float PULSE_SPEED = 2f;
+    private const float PULSE_MIN_ALPHA = 0.6f;
+    private const float PULSE_MAX_ALPHA = 1f;
 
     [SerializeField]
     private float updateInterval = 1f;
@@ -35,40 +36,60 @@ public class RoomData : MonoBehaviour
 
         if (infoPanel != null)
         {
-            // Positionnement initial du panel
+            // Configuration du RectTransform
             RectTransform panelRect = infoPanel.GetComponent<RectTransform>();
             if (panelRect != null)
             {
                 panelRect.anchoredPosition = new Vector3(0.3f, 0.15f, 0);
-                panelRect.localScale = new Vector3(0.004f, 0.004f, 0.004f); // Légèrement plus gros
+                panelRect.localScale = new Vector3(0.004f, 0.004f, 0.004f);
             }
 
-            // Configuration du panel et des textes
+            // Récupération du Panel et configuration du background
             Transform panelTransform = infoPanel.transform.Find("Panel");
             if (panelTransform != null)
             {
+                // Configuration du background
+                panelBackground = panelTransform.GetComponent<Image>();
+                if (panelBackground == null)
+                {
+                    panelBackground = panelTransform.gameObject.AddComponent<Image>();
+                }
+                // Définition de la couleur de fond (noir semi-transparent)
+                panelBackground.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
+
+                // Ajout d'un effet de contour
+                var outline = panelTransform.GetComponent<Outline>();
+                if (outline == null)
+                {
+                    outline = panelTransform.gameObject.AddComponent<Outline>();
+                    outline.effectColor = new Color(0.2f, 0.6f, 1f, 0.5f); // Bleu clair semi-transparent
+                    outline.effectDistance = new Vector2(2, -2);
+                }
+
                 roomDetailsText = panelTransform.Find("RoomDetails")?.GetComponent<TextMeshProUGUI>();
                 studentsListText = panelTransform.Find("StudentsListText")?.GetComponent<TextMeshProUGUI>();
 
-                // Configuration des textes
                 if (roomDetailsText != null)
                 {
                     roomDetailsText.alignment = TextAlignmentOptions.Left;
-                    roomDetailsText.fontSize = 18; // Un peu plus gros
+                    roomDetailsText.fontSize = 18;
                     roomDetailsText.enableWordWrapping = true;
                     roomDetailsText.margin = new Vector4(5, 5, 5, 5);
+                    // Assurer que le texte est bien visible sur le fond sombre
+                    roomDetailsText.color = Color.white;
                 }
 
                 if (studentsListText != null)
                 {
                     studentsListText.alignment = TextAlignmentOptions.Left;
-                    studentsListText.fontSize = 16; // Un peu plus gros
+                    studentsListText.fontSize = 16;
                     studentsListText.enableWordWrapping = true;
                     studentsListText.margin = new Vector4(5, 5, 5, 5);
+                    // Assurer que le texte est bien visible sur le fond sombre
+                    studentsListText.color = Color.white;
                 }
             }
 
-            // Configuration initiale
             infoPanel.SetActive(false);
         }
     }
@@ -77,13 +98,15 @@ public class RoomData : MonoBehaviour
     {
         if (infoPanel != null && infoPanel.activeSelf)
         {
-            // Billboard effect - make panel face camera
+            // Billboard effect
             Vector3 lookAtPos = mainCamera.transform.position;
             lookAtPos.y = infoPanel.transform.position.y;
             infoPanel.transform.LookAt(lookAtPos);
             infoPanel.transform.Rotate(0, 180, 0);
 
-            // Mettre à jour les informations si nécessaire
+            // Mise à jour de l'animation de pulsation
+            pulseTimer += Time.deltaTime * PULSE_SPEED;
+
             if (Time.time >= nextUpdateTime)
             {
                 UpdateInfoPanel();
@@ -116,14 +139,12 @@ public class RoomData : MonoBehaviour
             }
         }
 
-        // Provide haptic feedback on mobile devices
         if (isInfoVisible && SystemInfo.supportsVibration)
         {
             Handheld.Vibrate();
         }
     }
 
-    // Dans la méthode UpdateInfoPanel de RoomData.cs
     private void UpdateInfoPanel()
     {
         if (roomInfo == null) return;
@@ -133,14 +154,11 @@ public class RoomData : MonoBehaviour
             StringBuilder details = new StringBuilder();
             string currentHour = $"{System.DateTime.Now.Hour}h";
 
-            // En-tête avec nom de la salle (plus gros et centré)
             details.AppendLine($"<size=20><color=#2196F3><b>{roomName}</b></color></size>\n");
 
-            // Nombre de places actuels
             var currentStudents = roomInfo.studentsByHour.ContainsKey(currentHour) ?
                 roomInfo.studentsByHour[currentHour].Count : 0;
 
-            // État de la salle avec nombre de places
             if (currentStudents > 0)
             {
                 details.AppendLine($"<size=14><color=#4CAF50>● In Use</color></size>");
@@ -158,8 +176,11 @@ public class RoomData : MonoBehaviour
         if (studentsListText != null)
         {
             StringBuilder schedule = new StringBuilder();
+            string currentHour = $"{System.DateTime.Now.Hour}h";
 
-            // Planning de la journée
+            float pulseAlpha = Mathf.Lerp(PULSE_MIN_ALPHA, PULSE_MAX_ALPHA, (Mathf.Sin(pulseTimer) + 1f) / 2f);
+            string pulseHexAlpha = Mathf.RoundToInt(pulseAlpha * 255).ToString("X2");
+
             schedule.AppendLine("<size=16><b>Today's Schedule:</b></size>");
 
             if (roomInfo.studentsByHour.Count == 0)
@@ -170,37 +191,36 @@ public class RoomData : MonoBehaviour
             {
                 foreach (var hourData in roomInfo.studentsByHour.OrderBy(x => x.Key))
                 {
-                    schedule.AppendLine($"\n<size=14><color=#666666>{hourData.Key}</color> ({hourData.Value.Count} students)</size>");
+                    if (hourData.Key == currentHour)
+                    {
+                        schedule.AppendLine($"\n<size=14><color=#FF4081{pulseHexAlpha}><b>▶ {hourData.Key}</b></color> ({hourData.Value.Count} students)</size>");
+                    }
+                    else
+                    {
+                        schedule.AppendLine($"\n<size=14><color=#FFFFFF>{hourData.Key}</color> ({hourData.Value.Count} students)</size>");
+                    }
 
-                    // Afficher jusqu'à 3 étudiants par créneau
                     for (int i = 0; i < Math.Min(3, hourData.Value.Count); i++)
                     {
                         var student = hourData.Value[i];
-                        schedule.AppendLine($"<size=13>• {student.name} ({student.specialization})</size>");
+                        if (hourData.Key == currentHour)
+                        {
+                            schedule.AppendLine($"<size=13><color=#FF4081>• {student.name} ({student.specialization})</color></size>");
+                        }
+                        else
+                        {
+                            schedule.AppendLine($"<size=13><color=#E0E0E0>• {student.name} ({student.specialization})</color></size>");
+                        }
                     }
 
                     if (hourData.Value.Count > 3)
                     {
-                        schedule.AppendLine($"<size=12><color=#666666>+ {hourData.Value.Count - 3} more...</color></size>");
+                        schedule.AppendLine($"<size=12><color=#808080>+ {hourData.Value.Count - 3} more...</color></size>");
                     }
                 }
             }
 
             studentsListText.text = schedule.ToString();
         }
-    }
-
-
-
-    private int GetCurrentOccupancy()
-    {
-        int currentHour = System.DateTime.Now.Hour;
-        string hourKey = $"{currentHour}h";
-
-        if (studentsByHour.TryGetValue(hourKey, out int count))
-        {
-            return count;
-        }
-        return 0;
     }
 }
