@@ -1,8 +1,12 @@
+// RoomClickDetector.cs
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public class RoomClickDetector : MonoBehaviour
 {
     private RoomData roomData;
+    private float doubleTapTime = 0.2f;
+    private float lastTapTime;
 
     void Start()
     {
@@ -11,17 +15,50 @@ public class RoomClickDetector : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        // Handle touch input
+        if (Input.touchCount > 0)
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
+            Touch touch = Input.GetTouch(0);
 
-            if (Physics.Raycast(ray, out hit))
+            if (touch.phase == TouchPhase.Began)
             {
-                if (hit.collider.gameObject == gameObject)
+                // Check for double tap
+                float timeSinceLastTap = Time.time - lastTapTime;
+                lastTapTime = Time.time;
+
+                if (timeSinceLastTap <= doubleTapTime)
                 {
-                    roomData.OnRoomClicked();
+                    // Double tap detected
+                    HandleInteraction();
                 }
+                else
+                {
+                    // Single tap - check if hit
+                    HandleInteraction();
+                }
+            }
+        }
+        // Handle mouse input for testing in editor
+        else if (Input.GetMouseButtonDown(0))
+        {
+            HandleInteraction();
+        }
+    }
+
+    private void HandleInteraction()
+    {
+        // Ignore UI interactions
+        if (EventSystem.current.IsPointerOverGameObject())
+            return;
+
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit))
+        {
+            if (hit.collider.gameObject == gameObject)
+            {
+                roomData.OnRoomClicked();
             }
         }
     }
