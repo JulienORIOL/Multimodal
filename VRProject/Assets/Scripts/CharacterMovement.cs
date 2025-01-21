@@ -2,6 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
+using System.Collections;
+using System.Collections.Generic;
 
 public class CharacterMovement : MonoBehaviour
 {
@@ -10,7 +12,8 @@ public class CharacterMovement : MonoBehaviour
     public float runSpeed = 6f;
     public float rotationSpeed = 3f;
     
-    [FormerlySerializedAs("FixedLeftJoystick")] [Header("Joystick Settings")]
+    [Header("Joystick Settings")]
+    [FormerlySerializedAs("FixedLeftJoystick")]
     public FixedJoystick leftJoystick;
     public FixedJoystick rightJoystick;
     
@@ -20,6 +23,14 @@ public class CharacterMovement : MonoBehaviour
     public float lightSmoothSpeed = 5f;
     private Vector3 lightGyroOffset;
 
+    [Header("Shake Detection Settings")]
+    public float shakeDetectionThreshold = 2.0f;
+    public float minShakeInterval = 0.5f;
+    private float sqrShakeDetectionThreshold;
+    private float timeSinceLastShake;
+    private Vector3 accelerometerPrevious;
+    private Queue<Vector3> accelerometerReadings;
+    private const int ReadingsCount = 5;
     
     [Header("Action Buttons")]
     public Button sprintButton;
@@ -28,9 +39,15 @@ public class CharacterMovement : MonoBehaviour
     public Button gestureButton1;
     public Button gestureButton2;
     
+    [Header("Shader Settings")]
+    public Material visionMaterial; // Matériau utilisant le shader
+    public float smoothEdgeMin = -0.8f; // Valeur de bord minimal
+    public float smoothEdgeMax = -0.1f; // Valeur de bord maximal
+    public float smoothTransitionSpeed = 2f; // Vitesse de transition
+    
     [Header("Light Settings")]
-    public Light spotLight;                    // Référence vers votre spotlight
-    public float lightOffset = 1.5f;           // Distance au-dessus du personnage
+    public Light spotLight;
+    public float lightOffset = 1.5f;
 
     private Animator animator;
     private float currentSpeed = 0f;
@@ -41,23 +58,38 @@ public class CharacterMovement : MonoBehaviour
 
     void Start()
     {
+        // Initialisation des composants
+        InitializeComponents();
+        
+        // Initialisation du gyroscope et de l'accéléromètre
+        EnableGyroscope();
+        InitializeShakeDetection();
+        
+        // Configuration des boutons UI
+        SetupButtons();
+    }
+
+    void InitializeComponents()
+    {
         animator = GetComponent<Animator>();
         if (animator == null)
         {
-            Debug.LogError("Le composant Animator est manquant !");
+            Debug.LogError("Le composant Animator est manquant!");
         }
+        
         if (spotLight == null)
         {
-            Debug.LogError("Le composant Spotlight est manquant !");
+            Debug.LogError("Le composant Spotlight est manquant!");
         }
-        // Récupérer la caméra principale
+        
         cameraTransform = Camera.main.transform;
+    }
 
-        // Initialisation du gyroscope
-        EnableGyroscope();
-
-        // Configuration des boutons
-        SetupButtons();
+    void InitializeShakeDetection()
+    {
+        sqrShakeDetectionThreshold = Mathf.Pow(shakeDetectionThreshold, 2);
+        accelerometerReadings = new Queue<Vector3>();
+        Input.gyro.enabled = true;
     }
     
     void EnableGyroscope()
@@ -76,23 +108,37 @@ public class CharacterMovement : MonoBehaviour
 
     void SetupButtons()
     {
+        SetupSprintButton();
+        SetupJumpButton();
+        SetupAttackButton();
+        SetupGestureButtons();
+    }
+
+    void SetupSprintButton()
+    {
         if (sprintButton != null)
         {
-            EventTrigger trigger = sprintButton.gameObject.GetComponent<EventTrigger>();
-            if (trigger == null)
-                trigger = sprintButton.gameObject.AddComponent<EventTrigger>();
+            EventTrigger trigger = sprintButton.gameObject.GetComponent<EventTrigger>() 
+                ?? sprintButton.gameObject.AddComponent<EventTrigger>();
 
-            EventTrigger.Entry pointerDown = new EventTrigger.Entry();
-            pointerDown.eventID = EventTriggerType.PointerDown;
+            EventTrigger.Entry pointerDown = new EventTrigger.Entry
+            {
+                eventID = EventTriggerType.PointerDown
+            };
             pointerDown.callback.AddListener((data) => { isSprinting = true; });
             trigger.triggers.Add(pointerDown);
 
-            EventTrigger.Entry pointerUp = new EventTrigger.Entry();
-            pointerUp.eventID = EventTriggerType.PointerUp;
+            EventTrigger.Entry pointerUp = new EventTrigger.Entry
+            {
+                eventID = EventTriggerType.PointerUp
+            };
             pointerUp.callback.AddListener((data) => { isSprinting = false; });
             trigger.triggers.Add(pointerUp);
         }
+    }
 
+    void SetupJumpButton()
+    {
         if (jumpButton != null)
         {
             jumpButton.onClick.AddListener(() => {
@@ -100,7 +146,10 @@ public class CharacterMovement : MonoBehaviour
                 StartCoroutine(ResetJumpAnimation());
             });
         }
+    }
 
+    void SetupAttackButton()
+    {
         if (attackButton != null)
         {
             attackButton.onClick.AddListener(() => {
@@ -109,11 +158,15 @@ public class CharacterMovement : MonoBehaviour
                 StartCoroutine(ResetAttackAnimation());
             });
         }
+    }
 
+    void SetupGestureButtons()
+    {
         if (gestureButton1 != null)
         {
             gestureButton1.onClick.AddListener(() => animator.SetInteger("Animation_int", 4));
         }
+        
         if (gestureButton2 != null)
         {
             gestureButton2.onClick.AddListener(() => animator.SetInteger("Animation_int", 5));
@@ -125,7 +178,9 @@ public class CharacterMovement : MonoBehaviour
         HandleMovement();
         HandleJoystickRotation();
         UpdateAnimator();
-        UpdateSpotlight(); 
+        UpdateSpotlight();
+        DetectShake();
+        UpdateShaderSmoothness();
     }
 
     void HandleMovement()
@@ -134,7 +189,6 @@ public class CharacterMovement : MonoBehaviour
     
         if (direction.magnitude >= 0.1f)
         {
-           // Le déplacement suit la direction du joystick
             Vector3 moveDir = Quaternion.Euler(0f, cameraTransform.eulerAngles.y, 0f) * direction;
             currentSpeed = isSprinting ? runSpeed : walkSpeed;
             currentSpeed *= direction.magnitude;
@@ -150,17 +204,75 @@ public class CharacterMovement : MonoBehaviour
     {
         if (rightJoystick.Direction.magnitude >= 0.1f)
         {
-            // Convertir les angles d'Euler actuels
             float currentX = transform.eulerAngles.x;
             if (currentX > 180f) currentX -= 360f;
 
-            // Appliquer les rotations
             float newX = currentX - rightJoystick.Vertical * rotationSpeed * Time.deltaTime;
             float newY = transform.eulerAngles.y + rightJoystick.Horizontal * rotationSpeed * Time.deltaTime;
 
-            // Appliquer la rotation
             transform.rotation = Quaternion.Euler(newX, newY, 0f);
+        }
+    }
+
+    void DetectShake()
+    {
+        Vector3 acceleration = Input.acceleration;
+        
+        accelerometerReadings.Enqueue(acceleration);
+        if (accelerometerReadings.Count > ReadingsCount)
+        {
+            accelerometerReadings.Dequeue();
+        }
+        
+        if (accelerometerPrevious != Vector3.zero)
+        {
+            Vector3 deltaAcceleration = acceleration - accelerometerPrevious;
+            float shakeMagnitude = deltaAcceleration.sqrMagnitude;
             
+            if (shakeMagnitude > sqrShakeDetectionThreshold && 
+                Time.unscaledTime >= timeSinceLastShake + minShakeInterval)
+            {
+                DetermineShakeAnimation(deltaAcceleration);
+                timeSinceLastShake = Time.unscaledTime;
+            }
+        }
+        
+        accelerometerPrevious = acceleration;
+    }
+
+    void DetermineShakeAnimation(Vector3 deltaAcceleration)
+    {
+        float absX = Mathf.Abs(deltaAcceleration.x);
+        float absY = Mathf.Abs(deltaAcceleration.y);
+        float absZ = Mathf.Abs(deltaAcceleration.z);
+        
+        if (absX > absY && absX > absZ)
+        {
+            // Secousse latérale - Attaque
+            animator.SetInteger("WeaponType_int", 10);
+            animator.SetInteger("Animation_int", 7);
+            StartCoroutine(ResetAttackAnimation());
+        }
+        else if (absY > absX && absY > absZ)
+        {
+            if (deltaAcceleration.y > 0)
+            {
+                // Secousse vers le haut - Saut
+                animator.SetBool("Jump_gggb", true);
+                StartCoroutine(ResetJumpAnimation());
+            }
+            else
+            {
+                // Secousse vers le bas - Geste 1
+                animator.SetInteger("Animation_int", 4);
+                StartCoroutine(ResetGeneralAnimation());
+            }
+        }
+        else
+        {
+            // Secousse avant/arrière - Geste 2
+            animator.SetInteger("Animation_int", 5);
+            StartCoroutine(ResetGeneralAnimation());
         }
     }
     
@@ -168,32 +280,26 @@ public class CharacterMovement : MonoBehaviour
     {
         if (spotLight != null)
         {
-            // Position de la lumière au-dessus du personnage
             Vector3 lightPosition = transform.position + Vector3.up * lightOffset;
             spotLight.transform.position = lightPosition;
 
             if (gyro != null && gyro.enabled)
             {
-                // Conversion de la rotation du gyroscope pour le mode landscape left
                 Quaternion landscapeLeftRotation = Quaternion.Euler(90f, 0f, 0f);
                 Quaternion rawGyroRotation = Input.gyro.attitude;
             
-                // Correction pour le mode landscape left
                 Quaternion correctedGyroRotation = Quaternion.Euler(
                     -rawGyroRotation.eulerAngles.x,
                     -rawGyroRotation.eulerAngles.z,
                     rawGyroRotation.eulerAngles.y
                 );
 
-                // Application de la rotation landscape left
                 Quaternion finalRotation = landscapeLeftRotation * correctedGyroRotation;
 
-                // Limitation de l'angle de rotation
                 Vector3 eulerAngles = finalRotation.eulerAngles;
                 eulerAngles.x = Mathf.Clamp(eulerAngles.x, -maxLightTiltAngle, maxLightTiltAngle);
                 eulerAngles.z = Mathf.Clamp(eulerAngles.z, -maxLightTiltAngle, maxLightTiltAngle);
 
-                // Application du lissage
                 spotLight.transform.rotation = Quaternion.Slerp(
                     spotLight.transform.rotation,
                     Quaternion.Euler(eulerAngles),
@@ -202,17 +308,8 @@ public class CharacterMovement : MonoBehaviour
             }
             else
             {
-                // Fallback si le gyroscope n'est pas disponible
                 spotLight.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
             }
-        }
-    }
-    
-    void DebugGyroValues()
-    {
-        if (gyro != null && gyro.enabled)
-        {
-            Debug.Log($"Raw Gyro: X:{gyro.attitude.eulerAngles.x} Y:{gyro.attitude.eulerAngles.y} Z:{gyro.attitude.eulerAngles.z}");
         }
     }
 
@@ -222,16 +319,40 @@ public class CharacterMovement : MonoBehaviour
         animator.SetBool("Static_b", currentSpeed == 0f);
     }
 
-    System.Collections.IEnumerator ResetJumpAnimation()
+    IEnumerator ResetJumpAnimation()
     {
         yield return new WaitForSeconds(0.1f);
         animator.SetBool("Jump_gggb", false);
     }
 
-    System.Collections.IEnumerator ResetAttackAnimation()
+    IEnumerator ResetAttackAnimation()
     {
         yield return new WaitForSeconds(0.5f);
         animator.SetInteger("WeaponType_int", 0);
         animator.SetInteger("Animation_int", 0);
+    }
+
+    IEnumerator ResetGeneralAnimation()
+    {
+        yield return new WaitForSeconds(0.5f);
+        animator.SetInteger("Animation_int", 0);
+    }
+    
+    void UpdateShaderSmoothness()
+    {
+        if (visionMaterial != null)
+        {
+            // Déterminer la valeur cible en fonction de la vitesse
+            float targetSmoothness = currentSpeed > 0f ? smoothEdgeMax : smoothEdgeMin;
+            
+            // Obtenir la valeur actuelle de `_Smoothness`
+            float currentSmoothness = visionMaterial.GetFloat("_Smoothness");
+
+            // Interpoler vers la nouvelle valeur
+            float newSmoothness = Mathf.Lerp(currentSmoothness, targetSmoothness, Time.deltaTime * smoothTransitionSpeed);
+
+            // Mettre à jour la propriété du shader
+            visionMaterial.SetFloat("_Smoothness", newSmoothness);
+        }
     }
 }
