@@ -28,9 +28,20 @@ public class FilterMenuManager : MonoBehaviour
         ClearAndPopulateDropdown(timeDropdown, new[] { "All", "13h", "14h", "15h", "16h", "17h" });
         ClearDropdowns();
 
-        timeDropdown.onValueChanged.AddListener(_ => ApplyFilters());
-        specializationDropdown.onValueChanged.AddListener(_ => ApplyFilters());
-        transportDropdown.onValueChanged.AddListener(_ => ApplyFilters());
+        timeDropdown.onValueChanged.AddListener(delegate {
+            AudioManager.Instance.PlayClickSound();
+            ApplyFilters();
+        });
+
+        specializationDropdown.onValueChanged.AddListener(delegate {
+            AudioManager.Instance.PlayClickSound();
+            ApplyFilters();
+        });
+
+        transportDropdown.onValueChanged.AddListener(delegate {
+            AudioManager.Instance.PlayClickSound();
+            ApplyFilters();
+        });
     }
 
     private void ClearAndPopulateDropdown(TMP_Dropdown dropdown, string[] options)

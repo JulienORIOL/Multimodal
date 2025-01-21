@@ -101,6 +101,9 @@ public class RoomClickDetector : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit) && hit.collider.gameObject == gameObject)
         {
+            // Jouer le son
+            AudioManager.Instance.PlayClickSound();
+
             // Déclencher l'animation de clic
             StartClickAnimation();
 

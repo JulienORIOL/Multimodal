@@ -82,6 +82,9 @@ public class InteractionLogger : MonoBehaviour
 
     public void ToggleLogPanel()
     {
+        // Jouer le son
+        AudioManager.Instance.PlayClickSound();
+
         isPanelVisible = !isPanelVisible;
 
         if (isPanelVisible)
