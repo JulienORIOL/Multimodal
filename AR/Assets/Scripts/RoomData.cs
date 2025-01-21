@@ -15,7 +15,7 @@ public class RoomData : MonoBehaviour
     public Dictionary<string, int> studentsByHour = new Dictionary<string, int>();
     public GameObject infoPanel;
 
-    private bool isInfoVisible = false;
+    public bool isInfoVisible = false;
     private Camera mainCamera;
     private Animator panelAnimator;
     private TextMeshProUGUI roomDetailsText;

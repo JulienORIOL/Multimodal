@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.5349226, y: 0.8136518, z: 0.5169959}
-  m_LocalScale: {x: 1.52, y: 1.52, z: 1.52}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
@@ -119,10 +119,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 908f3f569f7f32d48bbc4b8bc043b582, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  infoPanel: {fileID: 7012166588496314651, guid: be7e1d4dc95e5c34baa335550e754015, type: 3}
-  studentMarkerPrefab: {fileID: 6674242193181166179, guid: 13053c3701c38420a9944f4361dfa771, type: 3}
   roomName: Room02
+  roomInfo:
+    capacity: 30
   studentsPresent: []
+  infoPanel: {fileID: 7012166588496314651, guid: be7e1d4dc95e5c34baa335550e754015, type: 3}
+  updateInterval: 1
+  isResizing: 0
 --- !u!114 &928925454472767037
 MonoBehaviour:
   m_ObjectHideFlags: 0
