@@ -1,8 +1,10 @@
-// DataManager.cs
 using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
 using System;
+using System.Linq;
+using System.Collections;
+using UnityEngine.Networking;
 
 public class DataManager : MonoBehaviour
 {
@@ -26,6 +28,7 @@ public class DataManager : MonoBehaviour
 
     private Dictionary<string, RoomInfo> roomDatabase = new Dictionary<string, RoomInfo>();
     private Dictionary<string, List<string>> studentSchedules = new Dictionary<string, List<string>>();
+    public bool isDataLoaded { get; private set; } = false;
 
     void Awake()
     {
@@ -33,7 +36,7 @@ public class DataManager : MonoBehaviour
         {
             instance = this;
             DontDestroyOnLoad(gameObject);
-            LoadStudentData();
+            StartCoroutine(LoadStudentData());
         }
         else
         {
@@ -41,71 +44,203 @@ public class DataManager : MonoBehaviour
         }
     }
 
-    private void LoadStudentData()
+    private IEnumerator LoadStudentData()
+    {
+        string csvContent = null;
+
+        // Chemin pour Android et iOS
+        string filePath = Path.Combine(Application.streamingAssetsPath, "Prof", "students.csv");
+
+        if (filePath.Contains("://") || filePath.Contains("jar"))
+        {
+#if UNITY_ANDROID
+            // Pour Android, utiliser UnityWebRequest
+            using (UnityWebRequest www = UnityWebRequest.Get(filePath))
+            {
+                yield return www.SendWebRequest();
+
+                if (www.result == UnityWebRequest.Result.Success)
+                {
+                    csvContent = www.downloadHandler.text;
+                    Debug.Log("Successfully loaded CSV from Android StreamingAssets");
+                }
+                else
+                {
+                    Debug.LogError($"Failed to load CSV from Android StreamingAssets: {www.error}");
+                }
+            }
+#else
+            // Pour iOS, lecture directe du fichier
+            csvContent = File.ReadAllText(filePath);
+#endif
+        }
+        else
+        {
+            // Pour l'√©diteur Unity et les builds standalone
+            if (File.Exists(filePath))
+            {
+                csvContent = File.ReadAllText(filePath);
+                Debug.Log("Successfully loaded CSV from file system");
+            }
+        }
+
+        // Fallback sur les ressources si n√©cessaire
+        if (string.IsNullOrEmpty(csvContent))
+        {
+            TextAsset textAsset = Resources.Load<TextAsset>("Prof/students");
+            if (textAsset != null)
+            {
+                csvContent = textAsset.text;
+                Debug.Log("Successfully loaded CSV from Resources");
+            }
+        }
+
+        if (string.IsNullOrEmpty(csvContent))
+        {
+            Debug.LogError("Failed to load student data from all sources");
+            yield break;
+        }
+
+        ProcessCSVContent(csvContent);
+        isDataLoaded = true;
+    }
+
+    private string TryLoadCSV()
+    {
+        // Chemins potentiels pour le fichier CSV
+        string[] potentialPaths = {
+            Path.Combine(Application.streamingAssetsPath, "Prof", "students.csv"),
+            Path.Combine(Application.dataPath, "StreamingAssets", "Prof", "students.csv"),
+            Path.Combine(Application.persistentDataPath, "students.csv")
+        };
+
+        // Essayer de charger le fichier localement
+        foreach (var path in potentialPaths)
+        {
+            Debug.Log($"Trying to load CSV from: {path}");
+            if (File.Exists(path))
+            {
+                try 
+                {
+                    return File.ReadAllText(path);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Error reading CSV from {path}: {e.Message}");
+                }
+            }
+        }
+
+        // Fallback sur les ressources
+        TextAsset textAsset = Resources.Load<TextAsset>("Prof/students");
+        if (textAsset != null)
+        {
+            Debug.Log("Successfully loaded CSV from Resources");
+            return textAsset.text;
+        }
+
+        return null;
+    }
+
+    private void ProcessCSVContent(string csvContent)
     {
         try
         {
-            string csvPath = Path.Combine(Application.streamingAssetsPath, "Prof", "students.csv");
-            Debug.Log($"Trying to read CSV at: {csvPath}");
-
-            var fileContents = new WWW(csvPath);
-            while (!fileContents.isDone) { }
-
-            string[] lines = fileContents.text.Split('\n');
+            string[] lines = SplitCSVLines(csvContent);
 
             // Skip header
             for (int i = 1; i < lines.Length; i++)
             {
-                string[] columns = lines[i].Split(',');
-                if (columns.Length >= 13)
+                string[] columns = SplitCSVLine(lines[i]);
+
+                if (columns.Length < 13)
                 {
-                    string studentName = columns[0].Trim();
-                    string transport = columns[9].Trim();
-                    string specialization = columns[12].Trim();
+                    Debug.LogWarning($"Invalid line {i}: {lines[i]}");
+                    continue;
+                }
 
-                    // VÈrifier chaque crÈneau horaire (13h ‡ 17h)
-                    for (int h = 0; h < 5; h++)
+                string studentName = columns[0].Trim();
+                string transport = columns[9].Trim();
+                string specialization = columns[12].Trim();
+
+                // V√©rifier chaque cr√©neau horaire (13h √† 17h)
+                for (int h = 0; h < 5; h++)
+                {
+                    string room = columns[h + 2].Trim();
+                    if (!string.IsNullOrEmpty(room))
                     {
-                        string room = columns[h + 2].Trim();
-                        if (!string.IsNullOrEmpty(room))
+                        string hourKey = $"{13 + h}h";
+
+                        if (!roomDatabase.ContainsKey(room))
                         {
-                            string hourKey = $"{13 + h}h";
-
-                            if (!roomDatabase.ContainsKey(room))
-                            {
-                                roomDatabase[room] = new RoomInfo();
-                            }
-
-                            if (!roomDatabase[room].studentsByHour.ContainsKey(hourKey))
-                            {
-                                roomDatabase[room].studentsByHour[hourKey] = new List<StudentInfo>();
-                            }
-
-                            // Ajouter l'Ètudiant
-                            roomDatabase[room].studentsByHour[hourKey].Add(new StudentInfo
-                            {
-                                name = studentName,
-                                transport = transport,
-                                specialization = specialization
-                            });
-
-                            // Mettre ‡ jour les statistiques
-                            UpdateStats(roomDatabase[room].transportStats, transport);
-                            UpdateStats(roomDatabase[room].specializationStats, specialization);
+                            roomDatabase[room] = new RoomInfo();
                         }
+
+                        if (!roomDatabase[room].studentsByHour.ContainsKey(hourKey))
+                        {
+                            roomDatabase[room].studentsByHour[hourKey] = new List<StudentInfo>();
+                        }
+
+                        StudentInfo studentInfo = new StudentInfo
+                        {
+                            name = studentName,
+                            transport = transport,
+                            specialization = specialization
+                        };
+
+                        roomDatabase[room].studentsByHour[hourKey].Add(studentInfo);
+                        UpdateStats(roomDatabase[room].transportStats, transport);
+                        UpdateStats(roomDatabase[room].specializationStats, specialization);
                     }
                 }
             }
+
             Debug.Log($"Loaded data for {roomDatabase.Count} rooms");
         }
         catch (Exception e)
         {
-            Debug.LogError($"Error loading student data: {e.Message}");
+            Debug.LogError($"Error processing student data: {e.Message}\n{e.StackTrace}");
         }
+    }
+
+    // M√©thode robuste pour diviser le CSV en lignes
+    private string[] SplitCSVLines(string csvContent)
+    {
+        return csvContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+    }
+
+    // M√©thode robuste pour diviser une ligne CSV
+    private string[] SplitCSVLine(string line)
+    {
+        var result = new List<string>();
+        bool inQuotes = false;
+        var currentField = new System.Text.StringBuilder();
+
+        for (int i = 0; i < line.Length; i++)
+        {
+            if (line[i] == '"')
+                inQuotes = !inQuotes;
+            else if (line[i] == ',' && !inQuotes)
+            {
+                result.Add(currentField.ToString().Trim('"', ' '));
+                currentField.Clear();
+            }
+            else
+            {
+                currentField.Append(line[i]);
+            }
+        }
+        
+        // Ajouter le dernier champ
+        result.Add(currentField.ToString().Trim('"', ' '));
+
+        return result.ToArray();
     }
 
     private void UpdateStats(Dictionary<string, int> stats, string key)
     {
+        if (string.IsNullOrEmpty(key)) return;
+        
         if (!stats.ContainsKey(key))
             stats[key] = 0;
         stats[key]++;
@@ -130,8 +265,6 @@ public class DataManager : MonoBehaviour
     }
 }
 
-
-
 [System.Serializable]
 public class RoomInfo
 {
@@ -140,7 +273,7 @@ public class RoomInfo
     // Pour les statistiques
     public Dictionary<string, int> transportStats = new Dictionary<string, int>();
     public Dictionary<string, int> specializationStats = new Dictionary<string, int>();
-    public int capacity = 30; // On garde une capacitÈ par dÈfaut
+    public int capacity = 30; // On garde une capacit√© par d√©faut
 }
 
 [System.Serializable]

@@ -146,7 +146,7 @@ GameObject:
   - component: {fileID: 4282297604615607069}
   - component: {fileID: 7239438467269396785}
   - component: {fileID: 6047011622478690835}
-  - component: {fileID: 4868399712549725352}
+  - component: {fileID: 9146896931973242533}
   m_Layer: 5
   m_Name: InfoPanel
   m_TagString: Untagged
@@ -237,7 +237,7 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &4868399712549725352
+--- !u!114 &9146896931973242533
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -246,12 +246,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 2183593545951953800}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5a0c7cce6427734459ad9f76b67895f9, type: 3}
+  m_Script: {fileID: 11500000, guid: 9e54eab7b56d84ed89ae4606cf06e64b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  minScale: 0.002
-  maxScale: 0.008
-  smoothSpeed: 10
 --- !u!1 &6348159447594761110
 GameObject:
   m_ObjectHideFlags: 0

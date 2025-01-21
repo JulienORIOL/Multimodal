@@ -79,7 +79,7 @@ public class PanelResizer : MonoBehaviour
         float currentDistance = Vector2.Distance(touch0.position, touch1.position);
         float scaleFactor = currentDistance / initialDistance;
 
-        // Calculer la nouvelle échelle
+        // Calculer la nouvelle Ã©chelle
         Vector3 newScale = initialScale * scaleFactor;
 
         // Appliquer les limites
@@ -87,7 +87,7 @@ public class PanelResizer : MonoBehaviour
         newScale.y = Mathf.Clamp(newScale.y, minScale, maxScale);
         newScale.z = Mathf.Clamp(newScale.z, minScale, maxScale);
 
-        // Appliquer la nouvelle échelle avec un lissage
+        // Appliquer la nouvelle Ã©chelle avec un lissage
         transform.localScale = Vector3.Lerp(
             transform.localScale,
             newScale,
@@ -100,7 +100,7 @@ public class PanelResizer : MonoBehaviour
         isResizing = false;
         roomData.isResizing = false;
 
-        // Mettre à jour l'échelle originale dans RoomData
+        // Mettre Ã  jour l'Ã©chelle originale dans RoomData
         roomData.UpdateOriginalScale(transform.localScale);
     }
 }
