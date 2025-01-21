@@ -36,6 +36,8 @@ public class RoomData : MonoBehaviour
     private const float PANEL_MAX_SCALE = 1.02f; // Échelle maximale
     private Vector3 originalPanelScale; // Pour stocker l'échelle initiale
 
+    public bool isResizing = false; // Public pour que PanelResizer puisse y accéder
+
     void Start()
     {
         mainCamera = Camera.main;
@@ -101,14 +103,32 @@ public class RoomData : MonoBehaviour
         }
     }
 
+    // Méthode pour mettre à jour l'échelle originale après un redimensionnement
+    public void UpdateOriginalScale(Vector3 newScale)
+    {
+        originalPanelScale = newScale;
+    }
+
     void Update()
     {
         if (infoPanel != null && infoPanel.activeSelf)
         {
-            float panelPulse = (Mathf.Sin(Time.time * PANEL_PULSE_SPEED) + 1f) / 2f;
-            float currentScale = Mathf.Lerp(PANEL_MIN_SCALE, PANEL_MAX_SCALE, panelPulse);
-            infoPanel.transform.localScale = originalPanelScale * currentScale;
-            // Billboard effect
+            // Ne jamais appliquer l'effet de pulsation pendant le redimensionnement
+            if (!isResizing)
+            {
+                float panelPulse = (Mathf.Sin(Time.time * PANEL_PULSE_SPEED) + 1f) / 2f;
+                float currentScale = Mathf.Lerp(PANEL_MIN_SCALE, PANEL_MAX_SCALE, panelPulse);
+                Vector3 newScale = originalPanelScale * currentScale;
+
+                // Application progressive de l'échelle pour éviter les sauts brusques
+                infoPanel.transform.localScale = Vector3.Lerp(
+                    infoPanel.transform.localScale,
+                    newScale,
+                    Time.deltaTime * 5f
+                );
+            }
+
+            // Billboard effect - toujours appliqué
             Vector3 lookAtPos = mainCamera.transform.position;
             lookAtPos.y = infoPanel.transform.position.y;
             infoPanel.transform.LookAt(lookAtPos);
@@ -155,7 +175,7 @@ public class RoomData : MonoBehaviour
         }
     }
 
-    private void UpdateInfoPanel()
+    public void UpdateInfoPanel()
     {
         if (roomInfo == null) return;
 
