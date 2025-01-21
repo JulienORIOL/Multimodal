@@ -728,6 +728,8 @@ MonoBehaviour:
   - imageName: Room02
     prefab: {fileID: 7981223863536714999, guid: f2a8cf374a2cb894ca759724a731231a, type: 3}
   infoPanelPrefab: {fileID: 2183593545951953800, guid: a6e97865515546b4591c582b28aa529a, type: 3}
+  smoothSpeed: 5
+  rotationSmoothSpeed: 5
 --- !u!114 &782628379
 MonoBehaviour:
   m_ObjectHideFlags: 0

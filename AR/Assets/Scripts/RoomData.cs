@@ -33,11 +33,12 @@ public class RoomData : MonoBehaviour
     private float updateInterval = 1f;
     private float nextUpdateTime;
 
-
     private const float PANEL_PULSE_SPEED = 3f; // Vitesse de l'animation
     private const float PANEL_MIN_SCALE = 0.98f; // Échelle minimale
     private const float PANEL_MAX_SCALE = 1.02f; // Échelle maximale
     private Vector3 originalPanelScale; // Pour stocker l'échelle initiale
+
+    public bool isResizing = false; // Pour permettre le redimensionnement du panneau
 
     void Start()
     {
@@ -45,7 +46,10 @@ public class RoomData : MonoBehaviour
         InitializePanelComponents();
         
         // Charger les informations de la salle depuis DataManager
-        roomInfo = DataManager.Instance.GetRoomInfo(roomName);
+        if (DataManager.Instance != null)
+        {
+            roomInfo = DataManager.Instance.GetRoomInfo(roomName);
+        }
     }
 
     private void InitializePanelComponents()
@@ -106,14 +110,32 @@ public class RoomData : MonoBehaviour
         }
     }
 
+    // Méthode pour mettre à jour l'échelle originale après un redimensionnement
+    public void UpdateOriginalScale(Vector3 newScale)
+    {
+        originalPanelScale = newScale;
+    }
+
     void Update()
     {
         if (infoPanel != null && infoPanel.activeSelf)
         {
-            float panelPulse = (Mathf.Sin(Time.time * PANEL_PULSE_SPEED) + 1f) / 2f;
-            float currentScale = Mathf.Lerp(PANEL_MIN_SCALE, PANEL_MAX_SCALE, panelPulse);
-            infoPanel.transform.localScale = originalPanelScale * currentScale;
-            // Billboard effect
+            // Ne jamais appliquer l'effet de pulsation pendant le redimensionnement
+            if (!isResizing)
+            {
+                float panelPulse = (Mathf.Sin(Time.time * PANEL_PULSE_SPEED) + 1f) / 2f;
+                float currentScale = Mathf.Lerp(PANEL_MIN_SCALE, PANEL_MAX_SCALE, panelPulse);
+                Vector3 newScale = originalPanelScale * currentScale;
+
+                // Application progressive de l'échelle pour éviter les sauts brusques
+                infoPanel.transform.localScale = Vector3.Lerp(
+                    infoPanel.transform.localScale,
+                    newScale,
+                    Time.deltaTime * 5f
+                );
+            }
+
+            // Billboard effect - toujours appliqué
             Vector3 lookAtPos = mainCamera.transform.position;
             lookAtPos.y = infoPanel.transform.position.y;
             infoPanel.transform.LookAt(lookAtPos);
@@ -204,6 +226,8 @@ public class RoomData : MonoBehaviour
 
     private void UpdateInfoPanel()
     {
+        if (roomInfo == null) return;
+
         if (roomDetailsText != null)
         {
             StringBuilder details = new StringBuilder();
@@ -211,7 +235,7 @@ public class RoomData : MonoBehaviour
 
             details.AppendLine($"<size=20><color=#2196F3><b>{roomName}</b></color></size>\n");
 
-            // Calculer l'occupation actuelle en fonction des étudiants
+            // Utiliser studentsPresent au lieu de roomInfo.studentsByHour
             var currentTimeStudents = studentsPresent.Where(s => 
                 roomInfo.studentsByHour.ContainsKey(currentHour) && 
                 roomInfo.studentsByHour[currentHour].Any(student => student.name == s)
@@ -241,55 +265,65 @@ public class RoomData : MonoBehaviour
             StringBuilder schedule = new StringBuilder();
             string currentHour = $"{DateTime.Now.Hour}h";
 
+            float pulseAlpha = Mathf.Lerp(PULSE_MIN_ALPHA, PULSE_MAX_ALPHA, (Mathf.Sin(pulseTimer) + 1f) / 2f);
+            string pulseHexAlpha = Mathf.RoundToInt(pulseAlpha * 255).ToString("X2");
+
             schedule.AppendLine("<size=16><b>Today's Schedule:</b></size>");
 
-            var hourGroups = studentsByHour
-                .OrderBy(x => x.Key)
-                .ToDictionary(x => x.Key, x => x.Value);
-
-            Debug.Log($"[{roomName}] Found {hourGroups.Count} time slots with students");
-
-            if (hourGroups.Count == 0)
+            // Utiliser studentsByHour qui a été mis à jour par UpdateStudentsList
+            if (studentsByHour.Count == 0)
             {
                 schedule.AppendLine("\n<size=14><i>No classes scheduled</i></size>");
             }
             else
             {
-                foreach (var hourGroup in hourGroups)
+                foreach (var hourGroup in studentsByHour.OrderBy(x => x.Key))
                 {
+                    // Trouver les étudiants pour cet horaire dans roomInfo
+                    var studentsInHour = roomInfo.studentsByHour.ContainsKey(hourGroup.Key)
+                        ? roomInfo.studentsByHour[hourGroup.Key]
+                        : new List<StudentInfo>();
+
                     if (hourGroup.Key == currentHour)
                     {
-                        schedule.AppendLine($"\n<size=14><color=#FF4081>▶ {hourGroup.Key}</color> ({hourGroup.Value} students)</size>");
-                        
-                        // Afficher les noms des étudiants pour l'heure actuelle
-                        var studentsInCurrentHour = roomInfo.studentsByHour[currentHour];
-                        foreach (var student in studentsInCurrentHour.Take(3))
-                        {
-                            schedule.AppendLine($"<size=13><color=#FF4081>• {student.name} ({student.specialization})</color></size>");
-                        }
-
-                        if (studentsInCurrentHour.Count > 3)
-                        {
-                            schedule.AppendLine($"<size=12><color=#808080>+ {studentsInCurrentHour.Count - 3} more...</color></size>");
-                        }
+                        schedule.AppendLine($"\n<size=14><color=#FF4081{pulseHexAlpha}><b>▶ {hourGroup.Key}</b></color> ({hourGroup.Value} students)</size>");
                     }
                     else
                     {
-                        schedule.AppendLine($"\n<size=14>{hourGroup.Key} ({hourGroup.Value} students)</size>");
+                        schedule.AppendLine($"\n<size=14><color=#FFFFFF>{hourGroup.Key}</color> ({hourGroup.Value} students)</size>");
+                    }
+
+                    // Limiter à 3 étudiants
+                    for (int i = 0; i < Math.Min(3, studentsInHour.Count); i++)
+                    {
+                        var student = studentsInHour[i];
+                        if (hourGroup.Key == currentHour)
+                        {
+                            schedule.AppendLine($"<size=13><color=#FF4081>• {student.name} ({student.specialization})</color></size>");
+                        }
+                        else
+                        {
+                            schedule.AppendLine($"<size=13><color=#E0E0E0>• {student.name} ({student.specialization})</color></size>");
+                        }
+                    }
+
+                    if (studentsInHour.Count > 3)
+                    {
+                        schedule.AppendLine($"<size=12><color=#808080>+ {studentsInHour.Count - 3} more...</color></size>");
                     }
                 }
+            }
 
-                // Statistiques de transport
-                if (studentsPresent.Any())
+            // Statistiques de transport
+            if (studentsPresent.Any() && roomInfo.transportStats != null)
+            {
+                schedule.AppendLine("\n<size=14><b>Transport:</b></size>");
+                var transportStats = roomInfo.transportStats
+                    .OrderByDescending(x => x.Value);
+
+                foreach (var transport in transportStats)
                 {
-                    schedule.AppendLine("\n<size=14><b>Transport:</b></size>");
-                    var transportStats = roomInfo.transportStats
-                        .OrderByDescending(x => x.Value);
-
-                    foreach (var transport in transportStats)
-                    {
-                        schedule.AppendLine($"<size=13>{transport.Key}: {transport.Value}</size>");
-                    }
+                    schedule.AppendLine($"<size=13>{transport.Key}: {transport.Value}</size>");
                 }
             }
 
