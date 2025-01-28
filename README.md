@@ -1,11 +1,12 @@
 # Multimodal - Equipe Welcome to PNS
 ## Informations générales
 ### Contexte du projet
-
+“Vous avez été contacté par le département des nouvelles technologies de Polytech pour développer deux applications afin d’aider les nouveaux étudiants à s’intégrer dans la vie de l’école d’ingénieur”
 
 ## Appli AR
 Scan de QR Codes positionnés à des endroits stratégiques de l’école pour fournir des infos sur la salle concernée (nombre de places disponibles, plan d’évacuation, objets présents).
 ### Lancement de l'application
+1. Se placer dans la branche AR : `git checkout AR`
 
 ### Fonctionnalités implémentées
 #### Fonctionnalités de base
@@ -21,6 +22,8 @@ Scan de QR Codes positionnés à des endroits stratégiques de l’école pour f
 ## Appli VR
 Création d’un espace virtuel où les étudiants peuvent habiller leur avatar et décorer leur espace virtuel avec des objets.
 ### Lancement de l'application
+1. Se placer dans la branche VR : `git checkout VR`
+2. Dans le projet sur Unity pour le lancer l'application sur le téléphone : File > Build Settings > Android > Build And Run
 
 ### Fonctionnalités implémentées
 #### Fonctionnalités de base
