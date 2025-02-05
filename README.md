@@ -92,3 +92,6 @@ Je vais modifier la section du lancement de l'application VR pour expliquer comm
 ### Limites
 - Lancer uniquement sur téléphone (Android de préférence) avec format Landscape Left en paramètre de lancement.
 - Une fois l'application lancé, commencer par orienter la caméra vers la où pointe la lampe torche. Au lancement, la lampe torche pointe vers un endroit fixe, c'est pour ca qu'il faut orienter la caméra vers la où elle pointe, pour ne pas être perdu si vous ne voyez pas la lampe torche au départ.
+
+### Sources
+- Pour l'utilisation des joysticks, nous avons utilisé l'asset suivant : https://assetstore.unity.com/packages/tools/input-management/joystick-pack-107631
