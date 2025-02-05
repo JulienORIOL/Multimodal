@@ -9,30 +9,36 @@ Scan de QR Codes positionnés à des endroits stratégiques de l’école pour f
 1. Ouvrir Unity Hub
 2. Créer un nouveau projet 3D Unity avec la version 2022.3.50f1 ou supérieure
 3. Une fois le projet créé, importer le custom package ar_app.unitypackage (trouvable sur la branch main ou AR)
-4. Dans la fenêtre d'import qui s'ouvre, cliquer sur "Import" en gardant tous les éléments sélectionnés
-5. Une fois l'import terminé, ouvrir la scène principale qui se trouve dans Assets/Scenes/SampleScene
-6. Dans Unity, aller dans File > Build Settings > Android > Switch Platform
-7. Dans Player Settings, vérifier que :
+4. Installer les packages nécessaires via Window > Package Manager :
+   - AR Foundation (version 5.0 ou supérieure)
+   - Google ARCore XR Plugin
+   - XR Plugin Management
+   
+   **Important** : Si vous rencontrez une erreur liée à Magic Leap après l'installation : Ignorer la et lancer ça marchera quand même :) 
+5. Dans la fenêtre d'import qui s'ouvre, cliquer sur "Import" en gardant tous les éléments sélectionnés
+6. Une fois l'import terminé, ouvrir la scène principale qui se trouve dans Assets/Scenes/SampleScene
+7. Dans Unity, aller dans File > Build Settings > Android > Switch Platform
+8. Dans Player Settings, vérifier que :
    - L'orientation est en "Portrait"
    - Dans XR Plug-in Management (sous Project Settings), activer "AR Foundation"
    - Dans XR Plug-in Management > Android, activer "ARCore"
    - Les permissions de caméra sont activées dans Player Settings > Android > Other Settings
    - Dans Player Settings > Android :
+     - auto graphics est décoché 
      - Configuration > Target Architecture: cocher ARM64
      - Configuration > Scripting Backend: IL2CPP
      - Configuration > Api Compatibility Level*: .NET Standard 2.1
-     - Other Settings > Rendering > Color Space: Linear
      - Other Settings > Graphics APIs: sélectionner uniquement OpenGLES3
      - Other Settings > Package Name: définir un nom de package unique
      - Other Settings > Minimum API Level: Android 7.0 'Nougat' (API level 24) ou supérieur
      - Other Settings > Target API Level: API level 33 (Android 13.0) recommandé
-8. Connecter votre téléphone Android en mode développeur
-9. Cliquer sur "Build And Run" pour lancer l'application sur le téléphone
-10. Une fois lancé, manipuler en premier le filtre --> TIME --> 13h : si vous ne le faites pas, les informations ne seront pas chargées en touchant les blocs
+9. Connecter votre téléphone Android en mode développeur
+10. Cliquer sur "Build And Run" pour lancer l'application sur le téléphone
+11. Une fois lancé, manipuler en premier le filtre --> TIME --> 13h : si vous ne le faites pas, les informations ne seront pas chargées dans les card en touchant les blocs
 
 
 
-**Note importante** : Assurez-vous que votre téléphone est compatible avec ARCore et que l'application ARCore est installée sur votre appareil. L'application a besoin d'un accès à la caméra pour fonctionner correctement.
+**Note importante** : Assurez-vous que votre téléphone est compatible avec ARCore et que l'application ARCore est installée sur votre appareil. L'application a besoin d'un accès à la caméra pour fonctionner correctement. Si problème pour configurer aller sur la doc officiel : https://developers.google.com/ar/develop/unity-arf/getting-started-ar-foundation?hl=fr
 
 ### Limites
 - L'application peut être utilisé en portrait ou paysage mais est moins ergonomique en portrait.
