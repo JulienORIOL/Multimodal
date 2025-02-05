@@ -1,10 +1,10 @@
 # Multimodal - Equipe Welcome to PNS
 
-CAUSER Clervie
-MENDES Léo
-ORIOL Julien
-DEDIEU Louis
-VANDENBRULLE Chloé
+- CAUSER Clervie
+- MENDES Léo
+- ORIOL Julien
+- DEDIEU Louis
+- VANDENBRULLE Chloé
 
 ## Informations générales
 ### Contexte du projet
