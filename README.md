@@ -6,19 +6,56 @@
 ## Appli AR
 Scan de QR Codes positionnés à des endroits stratégiques de l’école pour fournir des infos sur la salle concernée (nombre de places disponibles, plan d’évacuation, objets présents).
 ### Lancement de l'application
-1. Se placer dans la branche AR : `git checkout AR`
-2. Dans le projet sur Unity pour le lancer l'application sur le téléphone : File > Build Settings > Android > Build And Run
+1. Ouvrir Unity Hub
+2. Créer un nouveau projet 3D Unity avec la version 2022.3.50f1 ou supérieure
+3. Une fois le projet créé, importer le custom package ar_app.unitypackage (trouvable sur la branch main ou AR)
+4. Dans la fenêtre d'import qui s'ouvre, cliquer sur "Import" en gardant tous les éléments sélectionnés
+5. Une fois l'import terminé, ouvrir la scène principale qui se trouve dans Assets/Scenes/SampleScene
+6. Dans Unity, aller dans File > Build Settings > Android > Switch Platform
+7. Dans Player Settings, vérifier que :
+   - L'orientation est en "Portrait"
+   - Dans XR Plug-in Management (sous Project Settings), activer "AR Foundation"
+   - Dans XR Plug-in Management > Android, activer "ARCore"
+   - Les permissions de caméra sont activées dans Player Settings > Android > Other Settings
+   - Dans Player Settings > Android :
+     - Configuration > Target Architecture: cocher ARM64
+     - Configuration > Scripting Backend: IL2CPP
+     - Configuration > Api Compatibility Level*: .NET Standard 2.1
+     - Other Settings > Rendering > Color Space: Linear
+     - Other Settings > Graphics APIs: sélectionner uniquement OpenGLES3
+     - Other Settings > Package Name: définir un nom de package unique
+     - Other Settings > Minimum API Level: Android 7.0 'Nougat' (API level 24) ou supérieur
+     - Other Settings > Target API Level: API level 33 (Android 13.0) recommandé
+8. Connecter votre téléphone Android en mode développeur
+9. Cliquer sur "Build And Run" pour lancer l'application sur le téléphone
+10. Une fois lancé, manipuler en premier le filtre --> TIME --> 13h : si vous ne le faites pas, les informations ne seront pas chargées en touchant les blocs
+
+
+
+**Note importante** : Assurez-vous que votre téléphone est compatible avec ARCore et que l'application ARCore est installée sur votre appareil. L'application a besoin d'un accès à la caméra pour fonctionner correctement.
+
+### Limites
+- L'application peut être utilisé en portrait ou paysage mais est moins ergonomique en portrait.
+- En mode paysage, le drag and drop du panel de logs ne marche pas, le comportement est différent
+- Il faut interagir en premier lieu avec les filtres pour faire fonctionner le remplissage d'informations dans les card
+- Le panel des logs peut des fois apparaître complètement à l'opposé de l'utilisateur --> redémarrer l'application pour réinitialiser sa position et donc le voir en face de l'utilisateur
+- Boutons de filtres et de logs constamment affichés --> pas ergonomique
+
+### Sources
+- https://www.youtube.com/watch?v=FWyTf3USDCQ&t=674s&ab_channel=samyam
+- https://www.youtube.com/watch?v=GfS72wqKQ_g&ab_channel=immersiveinsiders
+
 
 ### Fonctionnalités implémentées
 #### Fonctionnalités de base
-- Visualisation augmentée de la map via des marqueurs AR
-- Affichage des informations des salles
+- Visualisation augmentée de la map via des marqueurs AR: les Card instanciées sont attachées au cube pour rajouter plus de réalisme. Ce choix a été fait pour être confronter à la difficulté de la motion sickness et du tracking des objets lorsqu'ils sont instanciés dans le monde augmenté. Une 2e justification est de pouvoir accéder à plusieurs informations de plusieurs salles en même temps et pas être contraint a une seule card dans l'écran. Les utilisateurs sont libres d'afficher ou non les card qu'ils souhaitent.
+- Affichage des informations des salles: Cliquer le cube d'une salle et vous verrez les informations
 - Fournir des retours approprié pour les interactions
   
 #### Fonctionnalités optionnelles
 - Filtrage des données des étudiants présent dans la salle
-- Possibilité de zoom ou dezoom sur les panels d’information
-- Génération de logs
+- Possibilité de zoom ou dezoom sur les panels d’information lorsque vous avez cliqué sur un Cube dans l'application
+- Génération de logs: via le bouton log en haut à gauche de l'écran, vous pourrez instancier en face de vous les logs (zoom dezoom, et drag and drop via la barre foncé horinzontal du haut)
 
 ## Appli VR
 Création d’un espace virtuel où les étudiants peuvent habiller leur avatar et décorer leur espace virtuel avec des objets.
