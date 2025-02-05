@@ -1,4 +1,11 @@
 # Multimodal - Equipe Welcome to PNS
+
+CAUSER Clervie
+MENDES Léo
+ORIOL Julien
+DEDIEU Louis
+VANDENBRULLE Chloé
+
 ## Informations générales
 ### Contexte du projet
 “Vous avez été contacté par le département des nouvelles technologies de Polytech pour développer deux applications afin d’aider les nouveaux étudiants à s’intégrer dans la vie de l’école d’ingénieur”
